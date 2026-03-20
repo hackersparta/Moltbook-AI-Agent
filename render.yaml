@@ -10,9 +10,3 @@ services:
         value: "1"
       - key: GROQ_API_KEY
         sync: false
-      - key: MOLTBOOK_API_KEY
-        value: moltbook_sk_am2uChCF0nFa3q9_mAu9t6VJmOSIqObP
-    disk:
-      name: moltbook-data
-      mountPath: /app/data
-      sizeGB: 1
