@@ -4,242 +4,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💬 My Posts & Comments - Moltbook</title>
+    <title>Comments - Moltbook</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
             min-height: 100vh;
-            padding: 20px;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .topbar {
+            background: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            font-size: 2em;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
+        .topbar h1 { font-size: 1.2em; color: #fff; font-weight: 600; }
+        .topbar h1 span { color: #4ade80; }
         .back-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-
-        .back-btn:hover {
-            background: #764ba2;
-        }
-
-        .posts-container {
-            display: grid;
-            gap: 20px;
-        }
-
-        .post-card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .post-header {
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .post-title {
-            font-size: 1.3em;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .post-meta {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .comments-section {
-            margin-top: 20px;
-        }
-
-        .comment-card {
-            background: #f9fafb;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 10px;
-        }
-
-        .comment-author {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .comment-analysis {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 15px;
-            margin-top: 15px;
+            padding: 8px 16px;
             border-radius: 8px;
+            font-size: 0.85em;
+            text-decoration: none;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #ccc;
+            transition: all 0.2s;
         }
+        .back-btn:hover { background: #2a2a2a; color: #fff; }
 
-        .score-badge {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            color: white;
-            margin-left: 10px;
+        /* Summary bar */
+        .summary {
+            display: flex;
+            gap: 1px;
+            background: #2a2a2a;
+            margin: 24px 32px;
+            border-radius: 12px;
+            overflow: hidden;
         }
-
-        .score-high {
-            background: #10b981;
-        }
-
-        .score-medium {
-            background: #f59e0b;
-        }
-
-        .score-low {
-            background: #ef4444;
-        }
-
-        .loading {
+        .summary-item {
+            flex: 1;
+            background: #1a1a1a;
+            padding: 20px 24px;
             text-align: center;
-            padding: 50px;
-            font-size: 1.5em;
-            color: white;
+        }
+        .summary-item .num { font-size: 2em; font-weight: 700; color: #fff; }
+        .summary-item .label { font-size: 0.8em; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Posts */
+        .posts { padding: 0 32px 40px; display: grid; gap: 16px; }
+
+        .post {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .post-head {
+            padding: 20px 24px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .post-title {
+            font-size: 1em;
+            color: #fff;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .post-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        /* Comments */
+        .comments-list { padding: 12px 24px 20px; }
+        .comment {
+            display: flex;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid #1f1f1f;
+            align-items: flex-start;
+        }
+        .comment:last-child { border-bottom: none; }
+
+        .comment-score {
+            min-width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .cs-high { background: #166534; }
+        .cs-mid { background: #854d0e; }
+        .cs-low { background: #7f1d1d; }
+
+        .comment-body { flex: 1; min-width: 0; }
+        .comment-author { font-size: 0.8em; color: #4ade80; font-weight: 600; margin-bottom: 4px; }
+        .comment-text { font-size: 0.85em; color: #aaa; line-height: 1.5; margin-bottom: 8px; }
+        .comment-analysis {
+            background: #111;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.8em;
+            color: #777;
+            line-height: 1.5;
+        }
+        .comment-analysis strong { color: #aaa; }
+
+        .no-comments { padding: 20px 24px; color: #555; font-size: 0.9em; }
+
+        .post-link {
+            display: inline-block;
+            padding: 6px 14px;
+            background: #262626;
+            color: #4ade80;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            border: 1px solid #333;
+            margin-top: 4px;
+        }
+        .post-link:hover { background: #333; }
+
+        .empty { text-align: center; padding: 60px; color: #555; font-size: 1.1em; }
+
+        @media (max-width: 768px) {
+            .topbar, .summary, .posts { padding-left: 16px; padding-right: 16px; }
+            .summary { margin: 16px; flex-wrap: wrap; }
+            .summary-item { min-width: 50%; }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💬 My Posts & Comments Analysis</h1>
-            <p style="color: #666;">View all your strategic posts and AI-analyzed comment opportunities</p>
-            <a href="/" class="back-btn">← Back to Dashboard</a>
-        </div>
+    <div class="topbar">
+        <h1>💬 My Posts & <span>Comments</span></h1>
+        <a href="/" class="back-btn">← Dashboard</a>
+    </div>
 
-        <div id="posts-container" class="posts-container">
-            <div class="loading">Loading posts and comments...</div>
-        </div>
+    <div class="summary" id="summary">
+        <div class="summary-item"><div class="num" id="total-posts">-</div><div class="label">Your Posts</div></div>
+        <div class="summary-item"><div class="num" id="total-comments">-</div><div class="label">Total Comments</div></div>
+        <div class="summary-item"><div class="num" id="opportunities" style="color:#4ade80">-</div><div class="label">Opportunities</div></div>
+    </div>
+
+    <div class="posts" id="posts">
+        <div class="empty">Loading...</div>
     </div>
 
     <script>
-        // Load posts and comments
         async function loadData() {
             try {
-                const [postsResponse, commentsResponse] = await Promise.all([
+                const [postsRes, commRes] = await Promise.all([
                     fetch('/api/my-posts'),
-                    fetch('/api/comment-opportunities')
+                    fetch('/api/comment-opportunities?min_score=0')
                 ]);
-
-                const postsData = await postsResponse.json();
-                const commentsData = await commentsResponse.json();
-
-                renderPosts(postsData, commentsData);
-            } catch (error) {
-                document.getElementById('posts-container').innerHTML =
-                    '<div class="loading">Error loading data. Make sure comments have been collected and analyzed.</div>';
+                const postsData = await postsRes.json();
+                const commData = await commRes.json();
+                render(postsData, commData);
+            } catch (e) {
+                document.getElementById('posts').innerHTML = '<div class="empty">No data yet. The scheduler will collect comments automatically.</div>';
             }
         }
 
-        function renderPosts(postsData, commentsData) {
-            const container = document.getElementById('posts-container');
+        function render(postsData, commData) {
+            const opps = (commData.opportunities || []).filter(o => (o.analysis?.feasibility_score || 0) >= 50);
+            document.getElementById('total-posts').textContent = postsData.total_posts || 0;
+            document.getElementById('total-comments').textContent = postsData.total_comments || 0;
+            document.getElementById('opportunities').textContent = opps.length;
 
-            if (postsData.total_posts === 0) {
-                container.innerHTML = '<div class="loading">No posts yet. The automation system will post strategic questions automatically.</div>';
+            const container = document.getElementById('posts');
+            const posts = postsData.posts || [];
+
+            if (!posts.length) {
+                container.innerHTML = '<div class="empty">No posts yet.</div>';
                 return;
             }
 
-            const html = postsData.posts.map(post => {
-                // Find comments for this post
-                const postComments = commentsData.opportunities.filter(
-                    opp => opp.original_post_id === post.id
-                );
+            container.innerHTML = posts.map(post => {
+                const postComments = (commData.opportunities || []).filter(o => o.original_post_id === post.id);
 
                 return `
-                    <div class="post-card">
-                        <div class="post-header">
-                            <div class="post-title">${post.content.substring(0, 200)}${post.content.length > 200 ? '...' : ''}</div>
-                            <div class="post-meta">
-                                📅 Posted: ${new Date(post.created_at).toLocaleString()} | 
-                                💬 ${post.comment_count} comments | 
-                                ⭐ ${post.score} upvotes
-                            </div>
+                <div class="post">
+                    <div class="post-head">
+                        <div class="post-title">${(post.content || '').substring(0, 180)}${(post.content || '').length > 180 ? '...' : ''}</div>
+                        <div class="post-stats">
+                            <span>⬆ ${post.score || 0}</span>
+                            <span>💬 ${post.comment_count || 0}</span>
+                            <span>${post.created_at ? new Date(post.created_at).toLocaleDateString() : ''}</span>
+                            ${post.url ? `<a href="${post.url}" target="_blank" class="post-link">Open →</a>` : ''}
                         </div>
-
-                        <div class="comments-section">
-                            <h3>💬 Comments & AI Analysis (${postComments.length} analyzed)</h3>
-                            
-                            ${postComments.length === 0 ?
-                        '<p style="color: #666;">No service opportunities found in comments yet. Comments will be collected 48 hours after posting.</p>' :
-                        postComments.map(comment => {
-                            const score = comment.analysis.feasibility_score;
-                            const scoreClass = score >= 70 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
-
-                            return `
-                                        <div class="comment-card">
-                                            <div class="comment-author">
-                                                🤖 ${comment.author}
-                                                <span class="score-badge ${scoreClass}">${score}/100</span>
-                                            </div>
-                                            <div style="color: #333; margin: 10px 0;">
-                                                "${comment.content.substring(0, 300)}${comment.content.length > 300 ? '...' : ''}"
-                                            </div>
-                                            
-                                            <div class="comment-analysis">
-                                                <strong>🧠 AI Analysis:</strong><br>
-                                                <strong>Service:</strong> ${comment.analysis.service_description}<br>
-                                                <strong>Potential:</strong> ${comment.analysis.business_potential}<br>
-                                                <strong>Insight:</strong> ${comment.analysis.key_insight}<br>
-                                                <strong>Recommendation:</strong> ${comment.analysis.recommendation}
-                                            </div>
-                                        </div>
-                                    `;
-                        }).join('')
-                    }
-                        </div>
-
-                        <a href="${post.url}" target="_blank" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 10px;">
-                            🔗 View Post on Moltbook
-                        </a>
                     </div>
-                `;
+                    <div class="${postComments.length ? 'comments-list' : 'no-comments'}">
+                        ${postComments.length ? postComments.map(c => {
+                            const s = c.analysis?.feasibility_score || 0;
+                            const cls = s >= 70 ? 'cs-high' : s >= 50 ? 'cs-mid' : 'cs-low';
+                            return `
+                            <div class="comment">
+                                <div class="comment-score ${cls}">${s}</div>
+                                <div class="comment-body">
+                                    <div class="comment-author">${c.author || 'Unknown'}</div>
+                                    <div class="comment-text">${(c.content || '').substring(0, 250)}${(c.content || '').length > 250 ? '...' : ''}</div>
+                                    <div class="comment-analysis">
+                                        <strong>Service:</strong> ${c.analysis?.service_description || '-'}<br>
+                                        <strong>Potential:</strong> ${c.analysis?.business_potential || '-'}<br>
+                                        <strong>Action:</strong> ${c.analysis?.recommendation || '-'}
+                                    </div>
+                                </div>
+                            </div>`;
+                        }).join('') : 'No analyzed comments yet — they get collected automatically.'}
+                    </div>
+                </div>`;
             }).join('');
-
-            container.innerHTML = html;
         }
 
-        // Load data on page load
         loadData();
-
-        // Auto-refresh every 60 seconds
         setInterval(loadData, 60000);
     </script>
 </body>

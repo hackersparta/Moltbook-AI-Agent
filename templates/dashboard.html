@@ -4,600 +4,348 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Moltbook Idea Analyzer</title>
+    <title>Moltbook Dashboard</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
             min-height: 100vh;
-            padding: 20px;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-        }
-
-        .stat-card .number {
-            font-size: 2.5em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-card .label {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-
-        .filters {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            background: #f0f0f0;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1em;
-        }
-
-        .filter-btn.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .filter-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .ideas-grid {
-            display: grid;
-            gap: 20px;
-        }
-
-        .idea-card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-
-        .idea-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
-        }
-
-        .idea-header {
+        /* Top bar */
+        .topbar {
+            background: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            padding: 16px 32px;
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 20px;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar h1 { font-size: 1.2em; color: #fff; font-weight: 600; }
+        .topbar h1 span { color: #4ade80; }
+        .topbar-right { display: flex; gap: 12px; align-items: center; }
+        .topbar-right a, .topbar-right button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #1a1a1a;
+            color: #ccc;
+            transition: all 0.2s;
+        }
+        .topbar-right a:hover, .topbar-right button:hover {
+            background: #2a2a2a;
+            color: #fff;
         }
 
-        .idea-title {
-            font-size: 1.5em;
-            color: #333;
-            margin-bottom: 10px;
-            flex: 1;
-        }
-
-        .feasibility-badge {
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 0.9em;
-            white-space: nowrap;
-            margin-left: 20px;
-        }
-
-        .badge-green {
-            background: #10b981;
-            color: white;
-        }
-
-        .badge-yellow {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .badge-orange {
-            background: #f97316;
-            color: white;
-        }
-
-        .badge-red {
-            background: #ef4444;
-            color: white;
-        }
-
-        .idea-meta {
+        /* Stats row */
+        .stats-row {
             display: flex;
-            gap: 20px;
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 15px;
+            gap: 1px;
+            background: #2a2a2a;
+            margin: 24px 32px;
+            border-radius: 12px;
+            overflow: hidden;
         }
+        .stat {
+            flex: 1;
+            background: #1a1a1a;
+            padding: 20px 24px;
+            text-align: center;
+        }
+        .stat .num { font-size: 2em; font-weight: 700; color: #fff; }
+        .stat .label { font-size: 0.8em; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .score-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
+        /* Filters */
+        .filters {
+            padding: 0 32px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .pill {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: transparent;
+            color: #aaa;
+            transition: all 0.2s;
+        }
+        .pill:hover { border-color: #555; color: #fff; }
+        .pill.active { background: #4ade80; color: #000; border-color: #4ade80; font-weight: 600; }
+
+        /* Ideas list */
+        .ideas { padding: 0 32px 40px; display: grid; gap: 12px; }
+
+        .idea {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color 0.2s;
+            cursor: default;
+        }
+        .idea:hover { border-color: #444; }
+
+        /* Score bar on left */
+        .idea-row { display: flex; gap: 20px; align-items: flex-start; }
+        .idea-score {
+            min-width: 56px;
+            height: 56px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: white;
-            margin: 0 auto 15px;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
         }
+        .score-green { background: #166534; }
+        .score-yellow { background: #854d0e; }
+        .score-orange { background: #9a3412; }
+        .score-red { background: #7f1d1d; }
 
-        .recommendation {
-            background: #f0f9ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 8px;
+        .idea-body { flex: 1; min-width: 0; }
+        .idea-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 6px;
+            line-height: 1.4;
         }
-
-        .reasons {
-            margin: 15px 0;
-        }
-
-        .reason-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .reason-item:last-child {
-            border-bottom: none;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .detail-item {
-            text-align: center;
-            padding: 10px;
-            background: #f9fafb;
-            border-radius: 10px;
-        }
-
-        .detail-label {
+        .idea-meta {
+            display: flex;
+            gap: 16px;
             font-size: 0.8em;
             color: #666;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .idea-rec {
+            font-size: 0.9em;
+            color: #a3a3a3;
+            line-height: 1.5;
+            margin-bottom: 10px;
         }
 
-        .detail-value {
-            font-weight: bold;
-            color: #333;
+        /* Tags */
+        .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+        .tag {
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            background: #262626;
+            color: #888;
+            border: 1px solid #333;
         }
 
-        .view-post-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s;
-            margin-top: 15px;
+        /* Quick facts row */
+        .facts {
+            display: flex;
+            gap: 24px;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 8px;
         }
+        .facts strong { color: #aaa; }
 
-        .view-post-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
+        /* Expand */
+        .idea-expand {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #2a2a2a;
         }
+        .idea-expand.open { display: block; }
+        .expand-section { margin-bottom: 12px; }
+        .expand-section h4 { font-size: 0.85em; color: #4ade80; margin-bottom: 6px; }
+        .expand-section li, .expand-section p { font-size: 0.85em; color: #999; line-height: 1.6; }
+        .expand-section ul { list-style: none; padding: 0; }
+        .expand-section li::before { content: "→ "; color: #555; }
 
-        .content-preview {
-            background: #f9fafb;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            max-height: 150px;
+        .content-box {
+            background: #111;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.85em;
+            color: #777;
+            line-height: 1.6;
+            max-height: 120px;
             overflow: hidden;
-            position: relative;
         }
 
-        .loading {
-            text-align: center;
-            padding: 50px;
-            font-size: 1.5em;
-            color: white;
+        .link-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #262626;
+            color: #4ade80;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.85em;
+            margin-top: 8px;
+            border: 1px solid #333;
         }
+        .link-btn:hover { background: #333; }
 
-        .mark-seen-btn {
-            padding: 12px 30px;
-            background: #10b981;
-            color: white;
+        .toggle-btn {
+            background: none;
             border: none;
-            border-radius: 10px;
+            color: #4ade80;
             cursor: pointer;
-            font-size: 1em;
-            transition: all 0.3s;
+            font-size: 0.85em;
+            padding: 4px 0;
         }
+        .toggle-btn:hover { text-decoration: underline; }
 
-        .mark-seen-btn:hover {
-            background: #059669;
-            transform: translateY(-2px);
-        }
+        .empty { text-align: center; padding: 60px; color: #555; font-size: 1.1em; }
 
-        .action-btn {
-            padding: 12px 24px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.95em;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-
-        .action-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .action-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
+        @media (max-width: 768px) {
+            .topbar, .stats-row, .filters, .ideas { padding-left: 16px; padding-right: 16px; }
+            .stats-row { margin: 16px; flex-wrap: wrap; }
+            .stat { min-width: 50%; }
+            .idea-row { flex-direction: column; gap: 12px; }
+            .idea-score { width: 56px; }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💰 Moltbook Idea Analyzer</h1>
-            <p style="color: #666;">AI-powered analysis of money-making opportunities from Moltbook</p>
-
-            <div class="stats-grid" id="stats">
-                <div class="stat-card">
-                    <div class="number" id="total-posts">-</div>
-                    <div class="label">Total Ideas</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="new-posts">-</div>
-                    <div class="label">New Ideas</div>
-                </div>
-                <div class="stat-card">
-                    <div class="number" id="seen-posts">-</div>
-                    <div class="label">Already Seen</div>
-                </div>
-            </div>
+    <div class="topbar">
+        <h1>🦞 Moltbook <span>Dashboard</span></h1>
+        <div class="topbar-right">
+            <a href="/comments">💬 Comments</a>
+            <button onclick="markAllSeen()">✅ Mark Seen</button>
         </div>
+    </div>
 
-        <div class="filters">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" onclick="filterIdeas('all')">All Ideas</button>
-                    <button class="filter-btn" onclick="filterIdeas('new')">New Only</button>
-                    <button class="filter-btn" onclick="filterIdeas('high')">🟢 High Priority (70+)</button>
-                    <button class="filter-btn" onclick="filterIdeas('medium')">🟡 Medium (50-69)</button>
-                    <button class="mark-seen-btn" onclick="markAllSeen()">✅ Mark All as Seen</button>
-                </div>
+    <div class="stats-row" id="stats">
+        <div class="stat"><div class="num" id="total-posts">-</div><div class="label">Total Ideas</div></div>
+        <div class="stat"><div class="num" id="new-posts" style="color:#4ade80">-</div><div class="label">New</div></div>
+        <div class="stat"><div class="num" id="seen-posts">-</div><div class="label">Seen</div></div>
+    </div>
 
-                <a href="/comments" class="action-btn" style="text-decoration: none;">
-                    💬 View My Posts & Comments Analysis
-                </a>
-            </div>
-        </div>
+    <div class="filters">
+        <button class="pill active" onclick="setFilter('all', this)">All</button>
+        <button class="pill" onclick="setFilter('high', this)">High (70+)</button>
+        <button class="pill" onclick="setFilter('medium', this)">Medium (50-69)</button>
+        <button class="pill" onclick="setFilter('low', this)">Low (&lt;50)</button>
+    </div>
 
-        <div class="ideas-grid" id="ideas">
-            <div class="loading">Loading ideas...</div>
-        </div>
+    <div class="ideas" id="ideas">
+        <div class="empty">Loading...</div>
     </div>
 
     <script>
         let allIdeas = [];
         let currentFilter = 'all';
 
-        // Load stats
         async function loadStats() {
-            const response = await fetch('/api/stats');
-            const stats = await response.json();
-
-            document.getElementById('total-posts').textContent = stats.total_posts;
-            document.getElementById('new-posts').textContent = stats.new_posts;
-            document.getElementById('seen-posts').textContent = stats.seen_posts;
+            const res = await fetch('/api/stats');
+            const s = await res.json();
+            document.getElementById('total-posts').textContent = s.total_posts;
+            document.getElementById('new-posts').textContent = s.new_posts;
+            document.getElementById('seen-posts').textContent = s.seen_posts;
         }
 
-        // Load ideas
         async function loadIdeas() {
-            const response = await fetch('/api/ideas');
-            allIdeas = await response.json();
-            renderIdeas();
+            const res = await fetch('/api/ideas');
+            allIdeas = await res.json();
+            render();
         }
 
-        // Render ideas
-        function renderIdeas() {
-            const container = document.getElementById('ideas');
+        function setFilter(f, el) {
+            currentFilter = f;
+            document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            render();
+        }
 
-            let filtered = allIdeas;
+        function getScoreClass(s) {
+            if (s >= 70) return 'score-green';
+            if (s >= 50) return 'score-yellow';
+            if (s >= 30) return 'score-orange';
+            return 'score-red';
+        }
 
-            if (currentFilter === 'high') {
-                filtered = allIdeas.filter(i => i.analysis.feasibility_score >= 70);
-            } else if (currentFilter === 'medium') {
-                filtered = allIdeas.filter(i => i.analysis.feasibility_score >= 50 && i.analysis.feasibility_score < 70);
-            }
+        function toggle(id) {
+            document.getElementById('exp-' + id).classList.toggle('open');
+        }
 
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="loading">No ideas match this filter</div>';
-                return;
-            }
+        function render() {
+            const c = document.getElementById('ideas');
+            let list = allIdeas;
 
-            container.innerHTML = filtered.map(idea => {
-                const score = idea.analysis.feasibility_score;
-                let badgeClass = 'badge-red';
-                let scoreColor = '#ef4444';
+            if (currentFilter === 'high') list = list.filter(i => i.analysis.feasibility_score >= 70);
+            else if (currentFilter === 'medium') list = list.filter(i => i.analysis.feasibility_score >= 50 && i.analysis.feasibility_score < 70);
+            else if (currentFilter === 'low') list = list.filter(i => i.analysis.feasibility_score < 50);
 
-                if (score >= 70) {
-                    badgeClass = 'badge-green';
-                    scoreColor = '#10b981';
-                } else if (score >= 50) {
-                    badgeClass = 'badge-green';
-                    scoreColor = '#10b981';
-                } else if (score >= 30) {
-                    badgeClass = 'badge-yellow';
-                    scoreColor = '#f59e0b';
-                } else if (score >= 10) {
-                    badgeClass = 'badge-orange';
-                    scoreColor = '#f97316';
-                }
+            if (!list.length) { c.innerHTML = '<div class="empty">No ideas match this filter</div>'; return; }
 
-                // AI analysis badge
-                const aiIBadge = idea.analysis.is_ai_analysis ?
-                    '<span style="background: #8b5cf6; color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.75em; margin-left: 10px;">🧠 AI Analyzed</span>' :
-                    '<span style="background: #6b7280; color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.75em; margin-left: 10px;">🔤 Keyword Match</span>';
+            c.innerHTML = list.map((idea, idx) => {
+                const s = idea.analysis.feasibility_score;
+                const a = idea.analysis;
+
+                const tags = (a.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+                const canDo = (a.reasons_can_do || []).map(r => `<li>${r}</li>`).join('');
+                const cantDo = (a.reasons_cant_do || []).map(r => `<li>${r}</li>`).join('');
+                const insights = (a.key_insights || []).map(r => `<li>${r}</li>`).join('');
 
                 return `
-                    <div class="idea-card">
-                        <div class="idea-header">
-                            <div class="idea-title">${idea.title}</div>
-                            <div style="display: flex; align-items: center;">
-                                ${aiIBadge}
-                                <div class="feasibility-badge ${badgeClass}" style="margin-left: 10px;">
-                                    ${idea.analysis.verdict.split(' ')[0]}
-                                </div>
+                <div class="idea">
+                    <div class="idea-row">
+                        <div class="idea-score ${getScoreClass(s)}">${s}</div>
+                        <div class="idea-body">
+                            <div class="idea-title">${idea.title || 'Untitled'}</div>
+                            <div class="idea-meta">
+                                <span>by ${idea.author}</span>
+                                <span>⬆ ${idea.score}</span>
+                                <span>💬 ${idea.comment_count}</span>
+                                ${a.business_model && a.business_model !== 'Unknown' ? `<span>💼 ${a.business_model}</span>` : ''}
+                                ${a.time_estimate && a.time_estimate !== 'Unknown' ? `<span>⏱ ${a.time_estimate}</span>` : ''}
+                                ${a.profit_potential && a.profit_potential !== 'Unknown' ? `<span>💰 ${a.profit_potential}</span>` : ''}
+                            </div>
+                            ${tags ? `<div class="tags">${tags}</div>` : ''}
+                            <div class="idea-rec">${a.recommendation || ''}</div>
+                            <button class="toggle-btn" onclick="toggle(${idx})">Show details ▾</button>
+
+                            <div class="idea-expand" id="exp-${idx}">
+                                ${insights ? `<div class="expand-section"><h4>Key Insights</h4><ul>${insights}</ul></div>` : ''}
+                                ${canDo ? `<div class="expand-section"><h4>Your Matching Skills</h4><ul>${canDo}</ul></div>` : ''}
+                                ${cantDo ? `<div class="expand-section"><h4>Missing Skills</h4><ul>${cantDo}</ul></div>` : ''}
+                                ${idea.content ? `<div class="expand-section"><h4>Original Post</h4><div class="content-box">${idea.content.substring(0, 500)}${idea.content.length > 500 ? '...' : ''}</div></div>` : ''}
+                                <a href="${idea.url}" target="_blank" class="link-btn">Open on Moltbook →</a>
                             </div>
                         </div>
-                        
-                        <div class="idea-meta">
-                            <span>👤 ${idea.author}</span>
-                            <span>⭐ ${idea.score} upvotes</span>
-                            <span>💬 ${idea.comment_count} comments</span>
-                            ${idea.analysis.business_model ? `<span>💼 ${idea.analysis.business_model}</span>` : ''}
-                        </div>
-                        
-                        ${idea.analysis.tags && idea.analysis.tags.length > 0 ? `
-                            <div style="margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px;">
-                                ${idea.analysis.tags.map(tag => `
-                                    <span style="background: #f0f9ff; color: #0369a1; padding: 4px 12px; border-radius: 12px; font-size: 0.85em;">
-                                        #${tag}
-                                    </span>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="score-circle" style="background: ${scoreColor}">
-                            ${score}
-                        </div>
-                        
-                        <div class="recommendation">
-                            <strong>💡 AI Recommendation:</strong><br>
-                            ${idea.analysis.recommendation}
-                        </div>
-                        
-                        ${idea.analysis.key_insights && idea.analysis.key_insights.length > 0 ? `
-                            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 8px;">
-                                <strong>✨ Key Insights:</strong>
-                                ${idea.analysis.key_insights.map(insight => `
-                                    <div style="padding: 6px 0; border-bottom: 1px solid #fde68a;">• ${insight}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        ${idea.analysis.reasons_can_do.length > 0 ? `
-                            <div class="reasons">
-                                <strong>✅ Why You Can Do This:</strong>
-                                ${idea.analysis.reasons_can_do.map(r => `
-                                    <div class="reason-item">• ${r}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        ${idea.analysis.reasons_cant_do.length > 0 ? `
-                            <div class="reasons">
-                                <strong>❌ Missing Skills:</strong>
-                                ${idea.analysis.reasons_cant_do.map(r => `
-                                    <div class="reason-item">• ${r}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="details-grid">
-                            <div class="detail-item">
-                                <div class="detail-label">⏱️ Time</div>
-                                <div class="detail-value">${idea.analysis.time_estimate}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">🎓 Difficulty</div>
-                                <div class="detail-value">${idea.analysis.difficulty}</div>
-                            </div>
-                            <div class="detail-item">
-                                <div class="detail-label">💰 Profit</div>
-                                <div class="detail-value">${idea.analysis.profit_potential}</div>
-                            </div>
-                        </div>
-                        
-                        ${idea.content ? `
-                            <div class="content-preview">
-                                ${idea.content.substring(0, 300)}${idea.content.length > 300 ? '...' : ''}
-                            </div>
-                        ` : ''}
-                        
-                        <a href="${idea.url}" target="_blank" class="view-post-btn">
-                            🔗 View Full Post on Moltbook
-                        </a>
                     </div>
-                `;
+                </div>`;
             }).join('');
         }
 
-        // Filter ideas
-        function filterIdeas(filter) {
-            currentFilter = filter;
-
-            // Update active button
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            renderIdeas();
-        }
-
-        // Mark all as seen
         async function markAllSeen() {
-            if (confirm('Mark all current ideas as seen?')) {
+            if (confirm('Mark all ideas as seen?')) {
                 await fetch('/api/mark_seen', { method: 'POST' });
                 await loadStats();
-                alert('✅ All ideas marked as seen!');
             }
         }
 
-        // Action: Post strategic question
-        async function postQuestion() {
-            const btn = document.getElementById('btn-post');
-            btn.disabled = true;
-            btn.textContent = '⏳ Posting...';
-
-            try {
-                const response = await fetch('/api/action/post-question', { method: 'POST' });
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-            } catch (error) {
-                alert('❌ Failed to post: ' + error);
-            }
-
-            btn.disabled = false;
-            btn.textContent = '📝 Post Strategic Question';
-        }
-
-        // Action: Collect comments
-        async function collectComments() {
-            const btn = document.getElementById('btn-collect');
-            btn.disabled = true;
-            btn.textContent = '⏳ Collecting...';
-
-            try {
-                const response = await fetch('/api/action/collect-comments', { method: 'POST' });
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-            } catch (error) {
-                alert('❌ Failed to collect: ' + error);
-            }
-
-            btn.disabled = false;
-            btn.textContent = '💬 Collect Comments';
-        }
-
-        // Action: Analyze comments
-        async function analyzeComments() {
-            const btn = document.getElementById('btn-analyze');
-            btn.disabled = true;
-            btn.textContent = '⏳ Analyzing...';
-
-            try {
-                const response = await fetch('/api/action/analyze-comments', { method: 'POST' });
-                const data = await response.json();
-
-                if (data.success) {
-                    alert('✅ ' + data.message + '\n\nRefresh page to see results!');
-                } else {
-                    alert('❌ Error: ' + data.error);
-                }
-            } catch (error) {
-                alert('❌ Failed to analyze: ' + error);
-            }
-
-            btn.disabled = false;
-            btn.textContent = '🧠 Analyze Comments';
-        }
-
-        // Initial load
         loadStats();
         loadIdeas();
-
-        // Auto-refresh every 30 seconds
         setInterval(loadStats, 30000);
+    </script>
+</body>
+
+</html>
     </script>
 </body>
 
