@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  moltbook-agent:
+    build: .
+    container_name: moltbook_agent
+    ports:
+      - "4761:5000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_ENV=development
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

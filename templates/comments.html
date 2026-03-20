@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💬 My Posts & Comments - Moltbook</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .back-btn:hover {
+            background: #764ba2;
+        }
+
+        .posts-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .post-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .post-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .post-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .comments-section {
+            margin-top: 20px;
+        }
+
+        .comment-card {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+
+        .comment-author {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .comment-analysis {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .score-high {
+            background: #10b981;
+        }
+
+        .score-medium {
+            background: #f59e0b;
+        }
+
+        .score-low {
+            background: #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 My Posts & Comments Analysis</h1>
+            <p style="color: #666;">View all your strategic posts and AI-analyzed comment opportunities</p>
+            <a href="/" class="back-btn">← Back to Dashboard</a>
+        </div>
+
+        <div id="posts-container" class="posts-container">
+            <div class="loading">Loading posts and comments...</div>
+        </div>
+    </div>
+
+    <script>
+        // Load posts and comments
+        async function loadData() {
+            try {
+                const [postsResponse, commentsResponse] = await Promise.all([
+                    fetch('/api/my-posts'),
+                    fetch('/api/comment-opportunities')
+                ]);
+
+                const postsData = await postsResponse.json();
+                const commentsData = await commentsResponse.json();
+
+                renderPosts(postsData, commentsData);
+            } catch (error) {
+                document.getElementById('posts-container').innerHTML =
+                    '<div class="loading">Error loading data. Make sure comments have been collected and analyzed.</div>';
+            }
+        }
+
+        function renderPosts(postsData, commentsData) {
+            const container = document.getElementById('posts-container');
+
+            if (postsData.total_posts === 0) {
+                container.innerHTML = '<div class="loading">No posts yet. The automation system will post strategic questions automatically.</div>';
+                return;
+            }
+
+            const html = postsData.posts.map(post => {
+                // Find comments for this post
+                const postComments = commentsData.opportunities.filter(
+                    opp => opp.original_post_id === post.id
+                );
+
+                return `
+                    <div class="post-card">
+                        <div class="post-header">
+                            <div class="post-title">${post.content.substring(0, 200)}${post.content.length > 200 ? '...' : ''}</div>
+                            <div class="post-meta">
+                                📅 Posted: ${new Date(post.created_at).toLocaleString()} | 
+                                💬 ${post.comment_count} comments | 
+                                ⭐ ${post.score} upvotes
+                            </div>
+                        </div>
+
+                        <div class="comments-section">
+                            <h3>💬 Comments & AI Analysis (${postComments.length} analyzed)</h3>
+                            
+                            ${postComments.length === 0 ?
+                        '<p style="color: #666;">No service opportunities found in comments yet. Comments will be collected 48 hours after posting.</p>' :
+                        postComments.map(comment => {
+                            const score = comment.analysis.feasibility_score;
+                            const scoreClass = score >= 70 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
+
+                            return `
+                                        <div class="comment-card">
+                                            <div class="comment-author">
+                                                🤖 ${comment.author}
+                                                <span class="score-badge ${scoreClass}">${score}/100</span>
+                                            </div>
+                                            <div style="color: #333; margin: 10px 0;">
+                                                "${comment.content.substring(0, 300)}${comment.content.length > 300 ? '...' : ''}"
+                                            </div>
+                                            
+                                            <div class="comment-analysis">
+                                                <strong>🧠 AI Analysis:</strong><br>
+                                                <strong>Service:</strong> ${comment.analysis.service_description}<br>
+                                                <strong>Potential:</strong> ${comment.analysis.business_potential}<br>
+                                                <strong>Insight:</strong> ${comment.analysis.key_insight}<br>
+                                                <strong>Recommendation:</strong> ${comment.analysis.recommendation}
+                                            </div>
+                                        </div>
+                                    `;
+                        }).join('')
+                    }
+                        </div>
+
+                        <a href="${post.url}" target="_blank" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 10px;">
+                            🔗 View Post on Moltbook
+                        </a>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Load data on page load
+        loadData();
+
+        // Auto-refresh every 60 seconds
+        setInterval(loadData, 60000);
+    </script>
+</body>
+
+</html>

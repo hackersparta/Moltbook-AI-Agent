@@ -1,0 +1,22 @@
+# Credentials & secrets
+.env
+moltbook_credentials.json
+registration.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Data files (will be on Render disk)
+knowledge.json
+seen_posts.json
+posting_history.json
+my_posts_with_comments.json
+comment_opportunities.json
+feed_opportunities.json
+ai_analyzed_ideas.json
+automation_schedule.json
+
+# OS
+Thumbs.db
+.DS_Store
