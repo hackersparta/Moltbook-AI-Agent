@@ -255,7 +255,7 @@ class MoltbookAgent:
         """Run the post creator script"""
         self.log("📝 Automation: Triggering Post Creator...")
         try:
-            subprocess.run([sys.executable, 'post_creator.py'], check=True)
+            subprocess.run([sys.executable, 'post_creator.py'], check=True, timeout=120)
             self.log("✅ Post Creator finished.")
         except Exception as e:
             self.log(f"❌ Post Creator failed: {e}")
@@ -264,7 +264,7 @@ class MoltbookAgent:
         """Run the comment collector script"""
         self.log("💬 Automation: Triggering Comment Collector...")
         try:
-            subprocess.run([sys.executable, 'comment_collector.py'], check=True)
+            subprocess.run([sys.executable, 'comment_collector.py'], check=True, timeout=120)
             self.log("✅ Comment Collector finished.")
         except Exception as e:
             self.log(f"❌ Comment Collector failed: {e}")
@@ -273,7 +273,7 @@ class MoltbookAgent:
         """Run the comment analyzer script"""
         self.log("🧠 Automation: Triggering Comment Analyzer...")
         try:
-            subprocess.run([sys.executable, 'comment_analyzer.py'], check=True)
+            subprocess.run([sys.executable, 'comment_analyzer.py'], check=True, timeout=120)
             self.log("✅ Comment Analyzer finished.")
         except Exception as e:
             self.log(f"❌ Comment Analyzer failed: {e}")
@@ -282,13 +282,16 @@ class MoltbookAgent:
         """Run the feed monitor script"""
         self.log("📡 Automation: Monitoring feed for opportunities...")
         try:
-            subprocess.run([sys.executable, 'feed_monitor.py'], check=True)
+            subprocess.run([sys.executable, 'feed_monitor.py'], check=True, timeout=120)
             self.log("✅ Feed Monitor finished.")
         except Exception as e:
             self.log(f"❌ Feed Monitor failed: {e}")
 
     def setup_automation_schedule(self):
         """Schedule the recurring automation tasks"""
+        # Engage with feed every 30 minutes
+        schedule.every(30).minutes.do(self.safe_engage)
+        
         # Post every 30 minutes
         schedule.every(30).minutes.do(self.post_strategic_question)
         
@@ -300,10 +303,18 @@ class MoltbookAgent:
         schedule.every(6).hours.do(self.analyze_comments)
         
         self.log("⏰ Automation schedule configured:")
+        self.log("   - Engage feed: Every 30 minutes")
         self.log("   - Post questions: Every 30 minutes")
         self.log("   - Monitor feed: Every 30 minutes")
         self.log("   - Collect comments: Every 6 hours")
         self.log("   - Analyze comments: Every 6 hours")
+
+    def safe_engage(self):
+        """Safely run engage_with_feed"""
+        try:
+            self.engage_with_feed()
+        except Exception as e:
+            self.log(f"⚠️ Engage failed (non-fatal): {e}")
 
     def run_scheduler(self):
         """Start the automation loop"""
@@ -312,14 +323,25 @@ class MoltbookAgent:
         # Setup the schedule
         self.setup_automation_schedule()
         
-        # Run Immediately on Startup (to satisfy user)
+        # Run Immediately on Startup
         self.log("⚡ Executing immediate startup tasks...")
-        self.post_strategic_question()
+        try:
+            self.engage_with_feed()
+        except Exception as e:
+            self.log(f"⚠️ Startup engage failed (non-fatal): {e}")
+        
+        try:
+            self.post_strategic_question()
+        except Exception as e:
+            self.log(f"⚠️ Startup post failed (non-fatal): {e}")
         
         self.log("⏰ Scheduler active. Waiting for next job...")
         
         while True:
-            schedule.run_pending()
+            try:
+                schedule.run_pending()
+            except Exception as e:
+                self.log(f"⚠️ Scheduler error (continuing): {e}")
             time.sleep(60)
 
 if __name__ == "__main__":
