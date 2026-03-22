@@ -100,14 +100,18 @@ def upload_drive_file(drive, folder_id, name, content_bytes, mime_type):
 
 # ── Excel helpers ────────────────────────────────────────────────
 # ★ Wishlist sheet columns (1-indexed):
-#  1=Shortcode, 2=Topic, 3=Slides, 4=Likes, 5=Cover,
-#  6=Key Topics, 7=Hashtags,
+#  1=#, 2=Post ID (shortcode), 3=Date, 4=Likes, 5=Slides,
+#  6=Post URL, 7=Caption,
 #  8=Scheduled Date, 9=Cover Image, 10=Rendered Path,
 #  11=Status, 12=Posted Date
 
-COL_SHORTCODE = 1
-COL_TOPIC = 2
-COL_SLIDES = 3
+COL_NUM = 1
+COL_SHORTCODE = 2
+COL_DATE = 3
+COL_LIKES = 4
+COL_SLIDES = 5
+COL_URL = 6
+COL_CAPTION = 7
 COL_SCHEDULED = 8
 COL_STATUS = 11
 COL_POSTED = 12
@@ -133,12 +137,11 @@ def find_todays_post(wb):
 
         if sched_str == today_str and str(status).strip().lower() == "rendered":
             shortcode = ws.cell(row=row, column=COL_SHORTCODE).value
-            topic = ws.cell(row=row, column=COL_TOPIC).value
-            log.info(f"Found today's post: row={row}, shortcode={shortcode}, topic={topic}")
-            return row, shortcode, topic
+            log.info(f"Found today's post: row={row}, shortcode={shortcode}")
+            return row, shortcode
 
     log.info(f"No post scheduled for {today_str}")
-    return None, None, None
+    return None, None
 
 
 def mark_posted(wb, row):
@@ -226,7 +229,7 @@ def run_daily_post():
     wb = load_workbook(io.BytesIO(excel_bytes))
 
     # 2. Find today's scheduled post
-    row, shortcode, topic = find_todays_post(wb)
+    row, shortcode = find_todays_post(wb)
     if row is None:
         return {"status": "skipped", "message": "No post scheduled for today"}
 
@@ -282,7 +285,6 @@ def run_daily_post():
     return {
         "status": "posted",
         "shortcode": shortcode,
-        "topic": topic,
         "slides": len(slides),
         "media_id": media_id,
     }

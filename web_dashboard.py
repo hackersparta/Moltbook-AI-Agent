@@ -280,6 +280,11 @@ def mark_seen():
 
 # ── Instagram Auto-Poster routes ─────────────────────────────────
 
+@app.route('/ig')
+def ig_dashboard():
+    """IG Auto-Poster dashboard page."""
+    return render_template('ig_dashboard.html')
+
 @app.route('/api/ig-cron')
 def ig_cron():
     """Triggered by Render cron or external scheduler. Posts today's carousel."""
@@ -310,12 +315,14 @@ def ig_status():
 
         posts = []
         for row in range(2, ws.max_row + 1):
-            sc = ws.cell(row=row, column=1).value
-            if not sc:
+            num = ws.cell(row=row, column=1).value
+            if not num:
                 continue
             posts.append({
-                "shortcode": sc,
-                "topic": ws.cell(row=row, column=2).value,
+                "num": num,
+                "shortcode": ws.cell(row=row, column=2).value,
+                "likes": ws.cell(row=row, column=4).value or 0,
+                "slides": ws.cell(row=row, column=5).value or 0,
                 "scheduled": str(ws.cell(row=row, column=8).value or ""),
                 "status": ws.cell(row=row, column=11).value or "pending",
                 "posted": str(ws.cell(row=row, column=12).value or ""),
