@@ -182,20 +182,26 @@ def create_carousel(container_ids, caption):
 
 
 def publish_container(container_id):
-    """Publish a media container."""
+    """Publish a media container with retry."""
     import time
-    # Wait for processing
-    time.sleep(10)
-    resp = requests.post(
-        f"{META_API}/{IG_ACCOUNT_ID}/media_publish",
-        data={"creation_id": container_id, "access_token": META_TOKEN},
-    )
+    # Wait for Meta to process all images
+    time.sleep(20)
+    for attempt in range(3):
+        resp = requests.post(
+            f"{META_API}/{IG_ACCOUNT_ID}/media_publish",
+            data={"creation_id": container_id, "access_token": META_TOKEN},
+        )
+        if resp.status_code == 200:
+            return resp.json()["id"]
+        log.warning(f"Publish attempt {attempt+1} failed: {resp.status_code} {resp.text}")
+        if attempt < 2:
+            time.sleep(15)  # Wait more before retry
     resp.raise_for_status()
     return resp.json()["id"]
 
 
 def get_public_url(drive, file_id):
-    """Make file publicly readable and return direct download URL."""
+    """Make file publicly readable and return direct image URL."""
     try:
         drive.permissions().create(
             fileId=file_id,
@@ -203,7 +209,7 @@ def get_public_url(drive, file_id):
         ).execute()
     except Exception:
         pass  # May already be shared
-    return f"https://drive.google.com/uc?export=download&id={file_id}"
+    return f"https://lh3.googleusercontent.com/d/{file_id}"
 
 
 # ── Main pipeline ────────────────────────────────────────────────
