@@ -368,27 +368,62 @@ h+="<tr><td>"+x.num+"</td><td class=\\"shortcode\\">"+x.shortcode+"</td><td>"+x.
 h+="</tbody></table>";document.getElementById("tableArea").innerHTML=h;
 }catch(e){document.getElementById("tableArea").innerHTML='<div class="loading" style="color:#f87171">Failed: '+e.message+'</div>'}}
 async function triggerPost(){
-var b=document.getElementById("btnPost");b.disabled=true;b.textContent="Posting...";showToast("Triggering post...","info");
+var b=document.getElementById("btnPost");b.disabled=true;b.textContent="\\u23F3 Posting...";showToast("Triggering post in background...","info");
 try{var r=await fetch("/api/ig-cron");var d=await r.json();
-if(d.status==="posted"){showToast("Posted! "+d.shortcode+" ("+d.slides+" slides)","success")}
-else if(d.status==="skipped"){showToast(d.message,"info")}
-else{showToast("Error: "+(d.message||"Unknown"),"error")}
-loadData()}catch(e){showToast("Failed: "+e.message,"error")}
-b.disabled=false;b.textContent="\\u1F680 Post Now"}
+if(d.status==="busy"){showToast(d.message,"info");b.disabled=false;b.textContent="\\u1F680 Post Now";return}
+if(d.status==="started"){showToast("Posting started! Checking progress...","info");pollResult(b);return}
+showToast("Unexpected: "+(d.message||JSON.stringify(d)),"error");b.disabled=false;b.textContent="\\u1F680 Post Now";
+}catch(e){showToast("Failed: "+e.message,"error");b.disabled=false;b.textContent="\\u1F680 Post Now"}}
+function pollResult(b){
+var iv=setInterval(async function(){
+try{var r=await fetch("/api/ig-post-result");var d=await r.json();
+if(d.running){b.textContent="\\u23F3 Posting... (working)";return}
+clearInterval(iv);
+var res=d.result||{};
+if(res.status==="posted"){showToast("\\u2705 Posted! "+res.shortcode+" ("+res.slides+" slides)","success")}
+else if(res.status==="skipped"){showToast(res.message||"Skipped","info")}
+else{showToast("Error: "+(res.message||"Unknown"),"error")}
+b.disabled=false;b.textContent="\\u1F680 Post Now";loadData();
+}catch(e){clearInterval(iv);showToast("Poll error: "+e.message,"error");b.disabled=false;b.textContent="\\u1F680 Post Now"}
+},5000)}
 loadData();
 </script>
 </body></html>'''
     return Response(html, mimetype='text/html')
 
+# ── Background posting state ─────────────────────────────────────
+import threading
+_ig_post_state = {"running": False, "result": None, "started": None}
+
 @app.route('/api/ig-cron')
 def ig_cron():
-    """Triggered by Render cron or external scheduler. Posts today's carousel."""
-    try:
-        from ig_auto_poster import run_daily_post
-        result = run_daily_post()
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    """Triggered by Render cron or external scheduler. Runs posting in background thread."""
+    if _ig_post_state["running"]:
+        return jsonify({"status": "busy", "message": "A post is already in progress. Please wait."})
+    
+    def _run():
+        try:
+            from ig_auto_poster import run_daily_post
+            _ig_post_state["result"] = run_daily_post()
+        except Exception as e:
+            _ig_post_state["result"] = {"status": "error", "message": str(e)}
+        finally:
+            _ig_post_state["running"] = False
+
+    _ig_post_state["running"] = True
+    _ig_post_state["result"] = None
+    _ig_post_state["started"] = datetime.utcnow().isoformat()
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "message": "Posting started in background. Refresh in ~60s."})
+
+@app.route('/api/ig-post-result')
+def ig_post_result():
+    """Check result of background posting job."""
+    return jsonify({
+        "running": _ig_post_state["running"],
+        "result": _ig_post_state["result"],
+        "started": _ig_post_state["started"],
+    })
 
 @app.route('/api/ig-status')
 def ig_status():
