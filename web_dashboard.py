@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, Response
 from flask_cors import CORS
 import json
 from datetime import datetime
@@ -283,8 +283,102 @@ def mark_seen():
 @app.route('/ig')
 @app.route('/ig/')
 def ig_dashboard():
-    """IG Auto-Poster dashboard page."""
-    return render_template('ig_dashboard.html')
+    """IG Auto-Poster dashboard page — inline HTML to avoid template path issues."""
+    html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>IG Auto-Poster | @thriveaiwithnirmal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e0e0e0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e);border-bottom:2px solid #F5A623;padding:24px 32px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:24px;color:#F5A623}
+.header .brand{color:#888;font-size:14px}
+.stats-bar{display:flex;gap:24px;padding:20px 32px;background:#111}
+.stat-card{background:#1a1a2e;border-radius:12px;padding:16px 24px;flex:1;text-align:center;border:1px solid #222}
+.stat-card .num{font-size:32px;font-weight:700;color:#F5A623}
+.stat-card .label{font-size:12px;color:#888;text-transform:uppercase;margin-top:4px}
+.actions{padding:16px 32px;display:flex;gap:12px}
+.btn{padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-post{background:#F5A623;color:#000}
+.btn-post:hover{background:#e6951a}
+.btn-refresh{background:#222;color:#e0e0e0;border:1px solid #444}
+.btn-refresh:hover{background:#333}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.toast{display:none;position:fixed;top:20px;right:20px;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:1000;animation:slideIn 0.3s ease}
+.toast.success{background:#1a5c2a;color:#4ade80;display:block}
+.toast.error{background:#5c1a1a;color:#f87171;display:block}
+.toast.info{background:#1a3a5c;color:#60a5fa;display:block}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.table-wrap{padding:0 32px 32px}
+table{width:100%;border-collapse:collapse;background:#111;border-radius:12px;overflow:hidden}
+th{background:#1a1a2e;padding:12px 16px;text-align:left;font-size:12px;text-transform:uppercase;color:#888;border-bottom:1px solid #222}
+td{padding:12px 16px;border-bottom:1px solid #1a1a1a;font-size:14px}
+tr:hover td{background:#151520}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-rendered{background:#1a3a5c;color:#60a5fa}
+.badge-posted{background:#1a5c2a;color:#4ade80}
+.badge-pending{background:#3a3a1a;color:#fbbf24}
+.shortcode{font-family:'SF Mono','Fira Code',monospace;color:#F5A623}
+.loading{text-align:center;padding:60px;color:#666;font-size:16px}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #444;border-top-color:#F5A623;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="header">
+<div><h1>&#x1F4F8; IG Auto-Poster</h1><div class="brand">@thriveaiwithnirmal &middot; Carousel Pipeline</div></div>
+<div style="color:#666;font-size:13px" id="lastUpdated"></div>
+</div>
+<div class="stats-bar">
+<div class="stat-card"><div class="num" id="totalPosts">-</div><div class="label">Total Posts</div></div>
+<div class="stat-card"><div class="num" id="postedCount">-</div><div class="label">Posted</div></div>
+<div class="stat-card"><div class="num" id="renderedCount">-</div><div class="label">Ready</div></div>
+<div class="stat-card"><div class="num" id="pendingCount">-</div><div class="label">Pending</div></div>
+</div>
+<div class="actions">
+<button class="btn btn-post" id="btnPost" onclick="triggerPost()">&#x1F680; Post Now (Today&#39;s Scheduled)</button>
+<button class="btn btn-refresh" onclick="loadData()">&#x1F504; Refresh</button>
+</div>
+<div id="toast" class="toast"></div>
+<div class="table-wrap"><div id="tableArea" class="loading"><span class="spinner"></span> Loading from Google Drive...</div></div>
+<script>
+function showToast(m,t){var e=document.getElementById("toast");e.className="toast "+t;e.textContent=m;setTimeout(function(){e.className="toast"},4000)}
+function badgeClass(s){if(!s)return"badge-pending";s=s.toLowerCase();if(s==="posted")return"badge-posted";if(s==="rendered")return"badge-rendered";return"badge-pending"}
+async function loadData(){
+document.getElementById("tableArea").innerHTML='<div class="loading"><span class="spinner"></span> Loading from Google Drive...</div>';
+try{
+var r=await fetch("/api/ig-status");var d=await r.json();
+if(d.error||d.status==="error"){document.getElementById("tableArea").innerHTML='<div class="loading" style="color:#f87171">Error: '+(d.message||d.error)+'</div>';return}
+var p=d.posts||[];
+var posted=p.filter(function(x){return(x.status||"").toLowerCase()==="posted"}).length;
+var rendered=p.filter(function(x){return(x.status||"").toLowerCase()==="rendered"}).length;
+var pending=p.filter(function(x){return !x.status||x.status.toLowerCase()==="pending"}).length;
+document.getElementById("totalPosts").textContent=p.length;
+document.getElementById("postedCount").textContent=posted;
+document.getElementById("renderedCount").textContent=rendered;
+document.getElementById("pendingCount").textContent=pending;
+document.getElementById("lastUpdated").textContent="Updated: "+new Date().toLocaleTimeString();
+var h='<table><thead><tr><th>#</th><th>Shortcode</th><th>Likes</th><th>Slides</th><th>Scheduled</th><th>Status</th><th>Posted</th></tr></thead><tbody>';
+p.forEach(function(x){
+var sc=x.scheduled&&x.scheduled!=="None"?x.scheduled:"\\u2014";
+var pd=x.posted&&x.posted!=="None"?x.posted:"\\u2014";
+h+="<tr><td>"+x.num+"</td><td class=\\"shortcode\\">"+x.shortcode+"</td><td>"+x.likes+"</td><td>"+x.slides+"</td><td>"+sc+"</td><td><span class=\\"badge "+badgeClass(x.status)+"\\">"+x.status+"</span></td><td>"+pd+"</td></tr>"});
+h+="</tbody></table>";document.getElementById("tableArea").innerHTML=h;
+}catch(e){document.getElementById("tableArea").innerHTML='<div class="loading" style="color:#f87171">Failed: '+e.message+'</div>'}}
+async function triggerPost(){
+var b=document.getElementById("btnPost");b.disabled=true;b.textContent="Posting...";showToast("Triggering post...","info");
+try{var r=await fetch("/api/ig-cron");var d=await r.json();
+if(d.status==="posted"){showToast("Posted! "+d.shortcode+" ("+d.slides+" slides)","success")}
+else if(d.status==="skipped"){showToast(d.message,"info")}
+else{showToast("Error: "+(d.message||"Unknown"),"error")}
+loadData()}catch(e){showToast("Failed: "+e.message,"error")}
+b.disabled=false;b.textContent="\\u1F680 Post Now"}
+loadData();
+</script>
+</body></html>'''
+    return Response(html, mimetype='text/html')
 
 @app.route('/api/ig-cron')
 def ig_cron():
