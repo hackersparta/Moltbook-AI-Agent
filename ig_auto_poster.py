@@ -151,7 +151,48 @@ def mark_posted(wb, row):
     ws.cell(row=row, column=COL_POSTED).value = date.today().strftime("%Y-%m-%d")
 
 
-# ── Meta Graph API ───────────────────────────────────────────────
+# ── Meta Graph API (with rate-limit safety) ──────────────────────
+import time
+
+def _safe_meta_call(method, url, data=None, max_retries=2):
+    """Make a Meta API call with rate-limit awareness. Abort on auth errors."""
+    for attempt in range(max_retries + 1):
+        resp = requests.request(method, url, data=data)
+
+        # Success
+        if resp.status_code == 200:
+            return resp
+
+        error_data = resp.json().get("error", {})
+        code = error_data.get("code", 0)
+        msg = error_data.get("message", "")
+
+        # Auth errors — never retry, token is bad
+        if resp.status_code == 403 or code in (190, 10, 100):
+            log.error(f"AUTH ERROR (no retry): {code} - {msg}")
+            raise Exception(f"Meta auth error: {msg}")
+
+        # Rate limit (code 4 or 32) — wait and retry once
+        if code in (4, 32) or resp.status_code == 429:
+            wait = 60 * (attempt + 1)  # 60s, 120s
+            log.warning(f"RATE LIMITED. Waiting {wait}s before retry {attempt+1}...")
+            time.sleep(wait)
+            continue
+
+        # Other errors — short retry with backoff
+        if attempt < max_retries:
+            wait = 10 * (attempt + 1)
+            log.warning(f"API error {resp.status_code}: {msg}. Retry in {wait}s...")
+            time.sleep(wait)
+            continue
+
+        # All retries exhausted
+        log.error(f"FAILED after {max_retries+1} attempts: {resp.status_code} {resp.text}")
+        raise Exception(f"Meta API failed: {resp.status_code} - {msg}")
+
+    return resp
+
+
 def upload_image_to_meta(image_url, caption=None, is_carousel_item=True):
     """Upload a single image as a carousel item container."""
     payload = {
@@ -163,8 +204,7 @@ def upload_image_to_meta(image_url, caption=None, is_carousel_item=True):
     if caption:
         payload["caption"] = caption
 
-    resp = requests.post(f"{META_API}/{IG_ACCOUNT_ID}/media", data=payload)
-    resp.raise_for_status()
+    resp = _safe_meta_call("POST", f"{META_API}/{IG_ACCOUNT_ID}/media", data=payload)
     return resp.json()["id"]
 
 
@@ -176,27 +216,20 @@ def create_carousel(container_ids, caption):
         "caption": caption,
         "access_token": META_TOKEN,
     }
-    resp = requests.post(f"{META_API}/{IG_ACCOUNT_ID}/media", data=payload)
-    resp.raise_for_status()
+    resp = _safe_meta_call("POST", f"{META_API}/{IG_ACCOUNT_ID}/media", data=payload)
     return resp.json()["id"]
 
 
 def publish_container(container_id):
-    """Publish a media container with retry."""
-    import time
+    """Publish a media container. Waits for processing, then publishes with retry."""
     # Wait for Meta to process all images
-    time.sleep(20)
-    for attempt in range(3):
-        resp = requests.post(
-            f"{META_API}/{IG_ACCOUNT_ID}/media_publish",
-            data={"creation_id": container_id, "access_token": META_TOKEN},
-        )
-        if resp.status_code == 200:
-            return resp.json()["id"]
-        log.warning(f"Publish attempt {attempt+1} failed: {resp.status_code} {resp.text}")
-        if attempt < 2:
-            time.sleep(15)  # Wait more before retry
-    resp.raise_for_status()
+    time.sleep(30)
+    resp = _safe_meta_call(
+        "POST",
+        f"{META_API}/{IG_ACCOUNT_ID}/media_publish",
+        data={"creation_id": container_id, "access_token": META_TOKEN},
+        max_retries=2,
+    )
     return resp.json()["id"]
 
 
@@ -261,21 +294,37 @@ def run_daily_post():
 
     log.info(f"Posting {shortcode}: {len(slides)} slides, caption={len(caption)} chars")
 
-    # 5. Make slides public and upload to Meta
-    container_ids = []
-    for slide in slides:
-        url = get_public_url(drive, slide["id"])
-        log.info(f"  Uploading {slide['name']} -> {url}")
-        cid = upload_image_to_meta(url)
-        container_ids.append(cid)
-        log.info(f"  Container: {cid}")
+    # 5. Make slides public and upload to Meta (with 2s gap between uploads)
+    try:
+        container_ids = []
+        for slide in slides:
+            url = get_public_url(drive, slide["id"])
+            log.info(f"  Uploading {slide['name']}...")
+            cid = upload_image_to_meta(url)
+            container_ids.append(cid)
+            log.info(f"  Container: {cid}")
+            time.sleep(2)  # Gentle gap to avoid rate limits
 
-    # 6. Create carousel and publish
-    carousel_id = create_carousel(container_ids, caption)
-    log.info(f"Carousel container: {carousel_id}")
+        # 6. Create carousel and publish
+        carousel_id = create_carousel(container_ids, caption)
+        log.info(f"Carousel container: {carousel_id}")
 
-    media_id = publish_container(carousel_id)
-    log.info(f"Published! Media ID: {media_id}")
+        media_id = publish_container(carousel_id)
+        log.info(f"Published! Media ID: {media_id}")
+
+    except Exception as e:
+        # Mark as "error" so we don't retry automatically and spam Meta
+        ws = wb["★ Wishlist"]
+        ws.cell(row=row, column=COL_STATUS).value = "error"
+        buf = io.BytesIO()
+        wb.save(buf)
+        upload_drive_file(
+            drive, DRIVE_FOLDER_ID, "carousel_report.xlsx",
+            buf.getvalue(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        log.error(f"POSTING FAILED for {shortcode}: {e}")
+        return {"status": "error", "shortcode": shortcode, "message": str(e)}
 
     # 7. Update Excel and re-upload
     mark_posted(wb, row)
