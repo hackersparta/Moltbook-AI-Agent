@@ -281,6 +281,7 @@ def mark_seen():
 # ── Instagram Auto-Poster routes ─────────────────────────────────
 
 @app.route('/ig')
+@app.route('/ig/')
 def ig_dashboard():
     """IG Auto-Poster dashboard page."""
     return render_template('ig_dashboard.html')
