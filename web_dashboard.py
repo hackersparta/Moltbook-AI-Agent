@@ -275,8 +275,55 @@ def mark_seen():
     
     with open('seen_posts.json', 'w') as f:
         json.dump(seen, f, indent=2)
-    
+
     return jsonify({"success": True, "marked": len(all_ids)})
+
+# ── Instagram Auto-Poster routes ─────────────────────────────────
+
+@app.route('/api/ig-cron')
+def ig_cron():
+    """Triggered by Render cron or external scheduler. Posts today's carousel."""
+    try:
+        from ig_auto_poster import run_daily_post
+        result = run_daily_post()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/ig-status')
+def ig_status():
+    """Check posting status — reads Excel from Drive."""
+    try:
+        from ig_auto_poster import get_drive_service, list_drive_folder, download_drive_file, DRIVE_FOLDER_ID
+        import io as _io
+        from openpyxl import load_workbook as _load_wb
+
+        drive = get_drive_service()
+        root_files = list_drive_folder(drive, DRIVE_FOLDER_ID)
+        excel_file = next((f for f in root_files if f["name"] == "carousel_report.xlsx"), None)
+        if not excel_file:
+            return jsonify({"error": "Excel not found on Drive"})
+
+        data = download_drive_file(drive, excel_file["id"])
+        wb = _load_wb(_io.BytesIO(data))
+        ws = wb["★ Wishlist"]
+
+        posts = []
+        for row in range(2, ws.max_row + 1):
+            sc = ws.cell(row=row, column=1).value
+            if not sc:
+                continue
+            posts.append({
+                "shortcode": sc,
+                "topic": ws.cell(row=row, column=2).value,
+                "scheduled": str(ws.cell(row=row, column=8).value or ""),
+                "status": ws.cell(row=row, column=11).value or "pending",
+                "posted": str(ws.cell(row=row, column=12).value or ""),
+            })
+
+        return jsonify({"posts": posts, "total": len(posts)})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     print("=" * 70)

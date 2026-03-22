@@ -5,3 +5,7 @@ schedule
 python-dotenv
 groq
 gunicorn
+google-api-python-client
+google-auth
+google-auth-oauthlib
+openpyxl
