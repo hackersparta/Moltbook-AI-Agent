@@ -1,5 +1,10 @@
 # Credentials & secrets
 .env
+moltbook_credentials.json
+
+# Runtime state (never commit)
+agent_state.json
+trend_history.json
 
 # Python
 __pycache__/

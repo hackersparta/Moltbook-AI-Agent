@@ -6,13 +6,11 @@ import os
 
 app = Flask(__name__)
 
-# Import analysis function
 import sys
 sys.path.append(os.path.dirname(__file__))
 from analyze_ideas import analyze_feasibility, YOUR_SKILLS
 
 def load_knowledge():
-    """Load knowledge base"""
     try:
         with open('knowledge.json', 'r') as f:
             return json.load(f)
@@ -20,16 +18,21 @@ def load_knowledge():
         return {"posts": [], "metadata": {}}
 
 def load_seen():
-    """Load seen posts"""
     try:
         with open('seen_posts.json', 'r') as f:
             return json.load(f)
     except FileNotFoundError:
         return {"seen": [], "last_check": None}
 
+def load_agent_state():
+    try:
+        with open('agent_state.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
 @app.route('/')
 def index():
-    """Main dashboard"""
     return render_template('dashboard.html')
 
 @app.route('/api/stats')
@@ -264,19 +267,74 @@ def comments_page():
 
 @app.route('/api/mark_seen', methods=['POST'])
 def mark_seen():
-    """Mark ideas as seen"""
     knowledge = load_knowledge()
     seen = load_seen()
-    
-    # Mark all current posts as seen
     all_ids = [p.get('id') for p in knowledge.get('posts', [])]
     seen['seen'] = list(set(seen.get('seen', []) + all_ids))
     seen['last_check'] = datetime.now().isoformat()
-    
     with open('seen_posts.json', 'w') as f:
         json.dump(seen, f, indent=2)
-
     return jsonify({"success": True, "marked": len(all_ids)})
+
+# ── Agent Health & Intelligence endpoints ─────────────────────
+
+@app.route('/api/agent-health')
+def agent_health():
+    """Real-time agent status: circuit breaker, daily caps, errors."""
+    state = load_agent_state()
+    return jsonify({
+        'circuit_status': 'OPEN' if state.get('circuit_open_until') else 'OK',
+        'circuit_open_until': state.get('circuit_open_until'),
+        'consecutive_errors': state.get('consecutive_errors', 0),
+        'upvotes_today': state.get('upvotes_today', 0),
+        'comments_today': state.get('comments_today', 0),
+        'api_calls_today': state.get('api_calls_today', 0),
+        'api_calls_this_hour': state.get('api_calls_this_hour', 0),
+        'counter_date': state.get('counter_date', ''),
+    })
+
+@app.route('/api/digest')
+def get_digest():
+    """Latest daily intelligence digest."""
+    state = load_agent_state()
+    digest = state.get('daily_digest', {})
+    if not digest:
+        # Build one on the fly from knowledge base
+        knowledge = load_knowledge()
+        today = datetime.now().strftime('%Y-%m-%d')
+        todays = [p for p in knowledge.get('posts', []) if p.get('saved_at', '').startswith(today)]
+        todays.sort(key=lambda x: x.get('intelligence_score', 0), reverse=True)
+        digest = {
+            'date': today,
+            'ideas_saved': len(todays),
+            'top_ideas': todays[:5],
+            'trends': [],
+        }
+    return jsonify(digest)
+
+@app.route('/api/trends')
+def get_trends():
+    """Keyword trend data for charting."""
+    state = load_agent_state()
+    trend_history = state.get('trend_history', {})
+
+    # Return last 14 days
+    from datetime import timedelta
+    today = datetime.now()
+    data = {}
+    for i in range(14):
+        day = (today - timedelta(days=i)).strftime('%Y-%m-%d')
+        data[day] = trend_history.get(day, {})
+    return jsonify(data)
+
+@app.route('/api/top-ideas')
+def get_top_ideas():
+    """Knowledge base sorted by intelligence_score."""
+    knowledge = load_knowledge()
+    posts = knowledge.get('posts', [])
+    # Sort by intelligence_score (new field), fallback to 0
+    posts.sort(key=lambda x: x.get('intelligence_score', 0), reverse=True)
+    return jsonify(posts[:20])
 
 # ── Instagram Auto-Poster routes ─────────────────────────────────
 

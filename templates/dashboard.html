@@ -4,350 +4,697 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moltbook Dashboard</title>
+    <title>Moltbook Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f0f;
-            color: #e0e0e0;
-            min-height: 100vh;
+        :root {
+            --bg-primary: #09090b;
+            --bg-card: #111113;
+            --bg-elevated: #18181b;
+            --border: #27272a;
+            --border-hover: #3f3f46;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #22c55e;
+            --accent-dim: rgba(34,197,94,.12);
+            --amber: #f59e0b;
+            --amber-dim: rgba(245,158,11,.12);
+            --red: #ef4444;
+            --red-dim: rgba(239,68,68,.12);
+            --blue: #3b82f6;
+            --blue-dim: rgba(59,130,246,.12);
+            --radius: 10px;
+            --radius-lg: 14px;
         }
 
-        /* Top bar */
-        .topbar {
-            background: #1a1a1a;
-            border-bottom: 1px solid #2a2a2a;
-            padding: 16px 32px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Navigation ─────────────────────────────── */
+        .nav {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            height: 56px;
             position: sticky;
             top: 0;
             z-index: 100;
+            backdrop-filter: blur(12px);
         }
-        .topbar h1 { font-size: 1.2em; color: #fff; font-weight: 600; }
-        .topbar h1 span { color: #4ade80; }
-        .topbar-right { display: flex; gap: 12px; align-items: center; }
-        .topbar-right a, .topbar-right button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.85em;
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-brand .logo {
+            width: 28px; height: 28px;
+            background: var(--accent);
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .nav-brand .logo svg { width: 16px; height: 16px; }
+        .nav-brand span { font-weight: 600; font-size: 15px; letter-spacing: -.3px; }
+        .nav-links { display: flex; gap: 4px; }
+        .nav-link {
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
             text-decoration: none;
+            color: var(--text-muted);
+            border: none;
+            background: none;
             cursor: pointer;
-            border: 1px solid #333;
-            background: #1a1a1a;
-            color: #ccc;
-            transition: all 0.2s;
+            transition: all .15s ease;
         }
-        .topbar-right a:hover, .topbar-right button:hover {
-            background: #2a2a2a;
-            color: #fff;
+        .nav-link:hover { color: var(--text-primary); background: var(--bg-elevated); }
+        .nav-link.active { color: var(--text-primary); background: var(--bg-elevated); }
+        .nav-link--accent {
+            background: var(--accent);
+            color: #000;
+            font-weight: 600;
+        }
+        .nav-link--accent:hover { background: #16a34a; color: #000; }
+
+        /* ── Layout ─────────────────────────────────── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+        /* ── Tab switcher ──────────────────────────── */
+        .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; }
+        .tab {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--text-muted);
+            transition: all .15s ease;
+        }
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border);
         }
 
-        /* Stats row */
-        .stats-row {
-            display: flex;
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Agent Health Bar ──────────────────────── */
+        .health-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1px;
-            background: #2a2a2a;
-            margin: 24px 32px;
-            border-radius: 12px;
+            background: var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .health-cell {
+            background: var(--bg-card);
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .health-cell .val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .health-cell .lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-muted);
+        }
+        .val--green { color: var(--accent); }
+        .val--amber { color: var(--amber); }
+        .val--red { color: var(--red); }
+        .val--blue { color: var(--blue); }
+
+        /* ── Circuit status chip ──────────────────── */
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .3px;
+        }
+        .chip--ok { background: var(--accent-dim); color: var(--accent); }
+        .chip--warn { background: var(--amber-dim); color: var(--amber); }
+        .chip--danger { background: var(--red-dim); color: var(--red); }
+        .chip-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* ── Cards ─────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
             overflow: hidden;
         }
-        .stat {
-            flex: 1;
-            background: #1a1a1a;
-            padding: 20px 24px;
-            text-align: center;
-        }
-        .stat .num { font-size: 2em; font-weight: 700; color: #fff; }
-        .stat .label { font-size: 0.8em; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* Filters */
-        .filters {
-            padding: 0 32px;
-            margin-bottom: 20px;
+        .card-header {
+            padding: 1rem 1.25rem;
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
         }
-        .pill {
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 0.85em;
+        .card-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -.2px;
+        }
+        .card-body { padding: 1.25rem; }
+
+        /* ── Ideas Feed ────────────────────────────── */
+        .filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 1rem;
+        }
+        .filter-btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
-            border: 1px solid #333;
-            background: transparent;
-            color: #aaa;
-            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--text-muted);
+            transition: all .15s ease;
         }
-        .pill:hover { border-color: #555; color: #fff; }
-        .pill.active { background: #4ade80; color: #000; border-color: #4ade80; font-weight: 600; }
+        .filter-btn:hover { border-color: var(--border-hover); color: var(--text-secondary); }
+        .filter-btn.active {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border-color: var(--text-primary);
+        }
 
-        /* Ideas list */
-        .ideas { padding: 0 32px 40px; display: grid; gap: 12px; }
+        .idea-list { display: flex; flex-direction: column; gap: 8px; }
 
-        .idea {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 12px;
-            padding: 24px;
-            transition: border-color 0.2s;
+        .idea-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            transition: border-color .15s ease;
             cursor: default;
         }
-        .idea:hover { border-color: #444; }
+        .idea-item:hover { border-color: var(--border-hover); }
 
-        /* Score bar on left */
-        .idea-row { display: flex; gap: 20px; align-items: flex-start; }
-        .idea-score {
-            min-width: 56px;
-            height: 56px;
-            border-radius: 12px;
+        .idea-top { display: flex; gap: 16px; align-items: flex-start; }
+
+        .score-badge {
+            min-width: 48px;
+            height: 48px;
+            border-radius: var(--radius);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3em;
+            font-size: 16px;
             font-weight: 700;
-            color: #fff;
             flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
         }
-        .score-green { background: #166534; }
-        .score-yellow { background: #854d0e; }
-        .score-orange { background: #9a3412; }
-        .score-red { background: #7f1d1d; }
+        .score--high { background: var(--accent-dim); color: var(--accent); }
+        .score--mid { background: var(--amber-dim); color: var(--amber); }
+        .score--low { background: var(--red-dim); color: var(--red); }
 
-        .idea-body { flex: 1; min-width: 0; }
+        .idea-content { flex: 1; min-width: 0; }
         .idea-title {
-            font-size: 1.1em;
+            font-size: 14px;
             font-weight: 600;
-            color: #fff;
-            margin-bottom: 6px;
             line-height: 1.4;
+            margin-bottom: 4px;
+            letter-spacing: -.2px;
         }
         .idea-meta {
             display: flex;
-            gap: 16px;
-            font-size: 0.8em;
-            color: #666;
-            margin-bottom: 10px;
+            gap: 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
             flex-wrap: wrap;
         }
         .idea-rec {
-            font-size: 0.9em;
-            color: #a3a3a3;
-            line-height: 1.5;
-            margin-bottom: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 8px;
         }
-
-        /* Tags */
-        .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-        .tag {
-            padding: 3px 10px;
+        .idea-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+        .idea-tag {
+            padding: 2px 8px;
             border-radius: 4px;
-            font-size: 0.75em;
-            background: #262626;
-            color: #888;
-            border: 1px solid #333;
+            font-size: 11px;
+            font-weight: 500;
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
         }
-
-        /* Quick facts row */
-        .facts {
+        .idea-facts {
             display: flex;
-            gap: 24px;
-            font-size: 0.8em;
-            color: #666;
-            margin-top: 8px;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
         }
-        .facts strong { color: #aaa; }
+        .idea-facts strong { color: var(--text-secondary); }
 
-        /* Expand */
-        .idea-expand {
+        .detail-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 0;
+        }
+        .detail-toggle:hover { text-decoration: underline; }
+
+        .idea-details {
             display: none;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #2a2a2a;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
         }
-        .idea-expand.open { display: block; }
-        .expand-section { margin-bottom: 12px; }
-        .expand-section h4 { font-size: 0.85em; color: #4ade80; margin-bottom: 6px; }
-        .expand-section li, .expand-section p { font-size: 0.85em; color: #999; line-height: 1.6; }
-        .expand-section ul { list-style: none; padding: 0; }
-        .expand-section li::before { content: "→ "; color: #555; }
+        .idea-details.open { display: block; }
+        .detail-section { margin-bottom: .75rem; }
+        .detail-section h4 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .detail-section li, .detail-section p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        .detail-section ul { list-style: none; padding: 0; }
+        .detail-section li::before { content: "\2192\00a0"; color: var(--text-muted); }
 
-        .content-box {
-            background: #111;
+        .original-text {
+            background: var(--bg-primary);
             border-radius: 8px;
-            padding: 14px;
-            font-size: 0.85em;
-            color: #777;
+            padding: 12px;
+            font-size: 13px;
+            color: var(--text-muted);
             line-height: 1.6;
             max-height: 120px;
             overflow: hidden;
         }
-
-        .link-btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background: #262626;
-            color: #4ade80;
+        .moltbook-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px;
+            background: var(--bg-elevated);
+            color: var(--accent);
             text-decoration: none;
             border-radius: 6px;
-            font-size: 0.85em;
-            margin-top: 8px;
-            border: 1px solid #333;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            margin-top: 6px;
+            transition: all .15s ease;
         }
-        .link-btn:hover { background: #333; }
+        .moltbook-link:hover { background: var(--border); }
 
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: #4ade80;
-            cursor: pointer;
-            font-size: 0.85em;
-            padding: 4px 0;
+        /* ── Trend Bars ────────────────────────────── */
+        .trend-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
         }
-        .toggle-btn:hover { text-decoration: underline; }
+        .trend-row:last-child { border-bottom: none; }
+        .trend-keyword {
+            width: 120px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .trend-bar-wrap {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .trend-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .4s ease;
+        }
+        .trend-bar--up { background: var(--accent); }
+        .trend-bar--stable { background: var(--blue); }
+        .trend-bar--down { background: var(--text-muted); }
+        .trend-change {
+            width: 60px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
 
-        .empty { text-align: center; padding: 60px; color: #555; font-size: 1.1em; }
+        /* ── Empty state ───────────────────────────── */
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Two-col layout for overview ───────────── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
 
         @media (max-width: 768px) {
-            .topbar, .stats-row, .filters, .ideas { padding-left: 16px; padding-right: 16px; }
-            .stats-row { margin: 16px; flex-wrap: wrap; }
-            .stat { min-width: 50%; }
-            .idea-row { flex-direction: column; gap: 12px; }
-            .idea-score { width: 56px; }
+            .nav { padding: 0 1rem; }
+            .container { padding: 1rem; }
+            .health-bar { grid-template-columns: repeat(2, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
-    <div class="topbar">
-        <h1>🦞 Moltbook <span>Dashboard</span></h1>
-        <div class="topbar-right">
-            <a href="/ig" style="background:#F5A623;color:#000;border-color:#F5A623;font-weight:600">📸 IG Auto-Poster</a>
-            <a href="/comments">💬 Comments</a>
-            <button onclick="markAllSeen()">✅ Mark Seen</button>
+
+<!-- Navigation -->
+<nav class="nav">
+    <div class="nav-brand">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <span>Moltbook Intelligence</span>
+    </div>
+    <div class="nav-links">
+        <a href="/ig" class="nav-link nav-link--accent">IG Poster</a>
+        <a href="/comments" class="nav-link">Comments</a>
+        <button class="nav-link" onclick="markAllSeen()">Mark Seen</button>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('overview', this)">Overview</button>
+        <button class="tab" onclick="switchTab('ideas', this)">Ideas</button>
+        <button class="tab" onclick="switchTab('trends', this)">Trends</button>
+    </div>
+
+    <!-- ════════ TAB: Overview ════════ -->
+    <div class="tab-panel active" id="panel-overview">
+
+        <!-- Agent Health -->
+        <div class="health-bar" id="health-bar">
+            <div class="health-cell">
+                <div class="val val--green" id="h-karma">--</div>
+                <div class="lbl">Ideas Saved</div>
+            </div>
+            <div class="health-cell">
+                <div class="val val--blue" id="h-new">--</div>
+                <div class="lbl">New Today</div>
+            </div>
+            <div class="health-cell">
+                <div class="val" id="h-upvotes">--</div>
+                <div class="lbl">Upvotes Today</div>
+            </div>
+            <div class="health-cell">
+                <div class="val" id="h-api">--</div>
+                <div class="lbl">API Calls</div>
+            </div>
+            <div class="health-cell">
+                <div id="h-circuit"></div>
+                <div class="lbl">Circuit Breaker</div>
+            </div>
+            <div class="health-cell">
+                <div class="val" id="h-errors">0</div>
+                <div class="lbl">Errors</div>
+            </div>
+        </div>
+
+        <!-- Two-column: Top Ideas + Trends -->
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header"><h3>Top Intelligence Today</h3></div>
+                <div class="card-body" id="digest-ideas"><div class="empty"><span class="spinner"></span>Loading</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Trending Keywords</h3></div>
+                <div class="card-body" id="overview-trends"><div class="empty"><span class="spinner"></span>Loading</div></div>
+            </div>
         </div>
     </div>
 
-    <div class="stats-row" id="stats">
-        <div class="stat"><div class="num" id="total-posts">-</div><div class="label">Total Ideas</div></div>
-        <div class="stat"><div class="num" id="new-posts" style="color:#4ade80">-</div><div class="label">New</div></div>
-        <div class="stat"><div class="num" id="seen-posts">-</div><div class="label">Seen</div></div>
+    <!-- ════════ TAB: Ideas ════════ -->
+    <div class="tab-panel" id="panel-ideas">
+        <div class="filters">
+            <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+            <button class="filter-btn" onclick="setFilter('high', this)">70+</button>
+            <button class="filter-btn" onclick="setFilter('medium', this)">50-69</button>
+            <button class="filter-btn" onclick="setFilter('low', this)">&lt; 50</button>
+        </div>
+        <div class="idea-list" id="ideas-list">
+            <div class="empty"><span class="spinner"></span>Loading ideas</div>
+        </div>
     </div>
 
-    <div class="filters">
-        <button class="pill active" onclick="setFilter('all', this)">All</button>
-        <button class="pill" onclick="setFilter('high', this)">High (70+)</button>
-        <button class="pill" onclick="setFilter('medium', this)">Medium (50-69)</button>
-        <button class="pill" onclick="setFilter('low', this)">Low (&lt;50)</button>
+    <!-- ════════ TAB: Trends ════════ -->
+    <div class="tab-panel" id="panel-trends">
+        <div class="card">
+            <div class="card-header"><h3>Keyword Trends (7-day vs previous 7-day)</h3></div>
+            <div class="card-body" id="trends-full"><div class="empty"><span class="spinner"></span>Loading</div></div>
+        </div>
     </div>
 
-    <div class="ideas" id="ideas">
-        <div class="empty">Loading...</div>
-    </div>
+</div>
 
-    <script>
-        let allIdeas = [];
-        let currentFilter = 'all';
+<script>
+let allIdeas = [];
+let currentFilter = 'all';
 
-        async function loadStats() {
-            const res = await fetch('/api/stats');
-            const s = await res.json();
-            document.getElementById('total-posts').textContent = s.total_posts;
-            document.getElementById('new-posts').textContent = s.new_posts;
-            document.getElementById('seen-posts').textContent = s.seen_posts;
+/* ── Tab switching ──────────────────────── */
+function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
+}
+
+/* ── Score helpers ──────────────────────── */
+function scoreClass(s) {
+    if (s >= 70) return 'score--high';
+    if (s >= 50) return 'score--mid';
+    return 'score--low';
+}
+function changeColor(pct) {
+    if (pct > 10) return 'var(--accent)';
+    if (pct < -10) return 'var(--red)';
+    return 'var(--blue)';
+}
+
+/* ── Load Agent Health ──────────────────── */
+async function loadHealth() {
+    try {
+        const [statsRes, healthRes] = await Promise.all([
+            fetch('/api/stats'), fetch('/api/agent-health')
+        ]);
+        const stats = await statsRes.json();
+        const health = await healthRes.json();
+
+        document.getElementById('h-karma').textContent = stats.total_posts || 0;
+        document.getElementById('h-new').textContent = stats.new_posts || 0;
+        document.getElementById('h-upvotes').textContent = health.upvotes_today || 0;
+        document.getElementById('h-api').textContent = health.api_calls_today || 0;
+        document.getElementById('h-errors').textContent = health.consecutive_errors || 0;
+
+        const ec = document.getElementById('h-errors');
+        ec.className = 'val' + (health.consecutive_errors > 3 ? ' val--red' : health.consecutive_errors > 0 ? ' val--amber' : '');
+
+        const cc = document.getElementById('h-circuit');
+        if (health.circuit_status === 'OPEN') {
+            cc.innerHTML = '<span class="chip chip--danger"><span class="chip-dot"></span>OPEN</span>';
+        } else {
+            cc.innerHTML = '<span class="chip chip--ok"><span class="chip-dot"></span>OK</span>';
         }
+    } catch(e) { console.error('Health load failed', e); }
+}
 
-        async function loadIdeas() {
-            const res = await fetch('/api/ideas');
-            allIdeas = await res.json();
-            render();
-        }
+/* ── Load Digest (Overview) ────────────── */
+async function loadDigest() {
+    try {
+        const res = await fetch('/api/top-ideas');
+        const ideas = await res.json();
+        const box = document.getElementById('digest-ideas');
+        if (!ideas.length) { box.innerHTML = '<div class="empty">No ideas collected yet</div>'; return; }
+        box.innerHTML = ideas.slice(0, 5).map(p => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+                <span class="score-badge ${scoreClass(p.intelligence_score || 0)}" style="min-width:36px;height:36px;font-size:13px">${p.intelligence_score || 0}</span>
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:500;line-height:1.4;margin-bottom:2px">${(p.title||'').substring(0,80)}</div>
+                    <div style="font-size:11px;color:var(--text-muted)">by ${p.author || 'Unknown'}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) { console.error('Digest failed', e); }
+}
 
-        function setFilter(f, el) {
-            currentFilter = f;
-            document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            render();
-        }
+/* ── Load Trends ───────────────────────── */
+async function loadTrends() {
+    try {
+        const res = await fetch('/api/trends');
+        const data = await res.json();
 
-        function getScoreClass(s) {
-            if (s >= 70) return 'score-green';
-            if (s >= 50) return 'score-yellow';
-            if (s >= 30) return 'score-orange';
-            return 'score-red';
-        }
+        // Aggregate: sum each keyword across all days
+        const totals = {};
+        Object.values(data).forEach(day => {
+            Object.entries(day).forEach(([k, v]) => { totals[k] = (totals[k] || 0) + v; });
+        });
 
-        function toggle(id) {
-            document.getElementById('exp-' + id).classList.toggle('open');
-        }
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+        const maxVal = sorted.length ? sorted[0][1] : 1;
 
-        function render() {
-            const c = document.getElementById('ideas');
-            let list = allIdeas;
-
-            if (currentFilter === 'high') list = list.filter(i => i.analysis.feasibility_score >= 70);
-            else if (currentFilter === 'medium') list = list.filter(i => i.analysis.feasibility_score >= 50 && i.analysis.feasibility_score < 70);
-            else if (currentFilter === 'low') list = list.filter(i => i.analysis.feasibility_score < 50);
-
-            if (!list.length) { c.innerHTML = '<div class="empty">No ideas match this filter</div>'; return; }
-
-            c.innerHTML = list.map((idea, idx) => {
-                const s = idea.analysis.feasibility_score;
-                const a = idea.analysis;
-
-                const tags = (a.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
-                const canDo = (a.reasons_can_do || []).map(r => `<li>${r}</li>`).join('');
-                const cantDo = (a.reasons_cant_do || []).map(r => `<li>${r}</li>`).join('');
-                const insights = (a.key_insights || []).map(r => `<li>${r}</li>`).join('');
-
-                return `
-                <div class="idea">
-                    <div class="idea-row">
-                        <div class="idea-score ${getScoreClass(s)}">${s}</div>
-                        <div class="idea-body">
-                            <div class="idea-title">${idea.title || 'Untitled'}</div>
-                            <div class="idea-meta">
-                                <span>by ${idea.author}</span>
-                                <span>⬆ ${idea.score}</span>
-                                <span>💬 ${idea.comment_count}</span>
-                                ${a.business_model && a.business_model !== 'Unknown' ? `<span>💼 ${a.business_model}</span>` : ''}
-                                ${a.time_estimate && a.time_estimate !== 'Unknown' ? `<span>⏱ ${a.time_estimate}</span>` : ''}
-                                ${a.profit_potential && a.profit_potential !== 'Unknown' ? `<span>💰 ${a.profit_potential}</span>` : ''}
-                            </div>
-                            ${tags ? `<div class="tags">${tags}</div>` : ''}
-                            <div class="idea-rec">${a.recommendation || ''}</div>
-                            <button class="toggle-btn" onclick="toggle(${idx})">Show details ▾</button>
-
-                            <div class="idea-expand" id="exp-${idx}">
-                                ${insights ? `<div class="expand-section"><h4>Key Insights</h4><ul>${insights}</ul></div>` : ''}
-                                ${canDo ? `<div class="expand-section"><h4>Your Matching Skills</h4><ul>${canDo}</ul></div>` : ''}
-                                ${cantDo ? `<div class="expand-section"><h4>Missing Skills</h4><ul>${cantDo}</ul></div>` : ''}
-                                ${idea.content ? `<div class="expand-section"><h4>Original Post</h4><div class="content-box">${idea.content.substring(0, 500)}${idea.content.length > 500 ? '...' : ''}</div></div>` : ''}
-                                <a href="${idea.url}" target="_blank" class="link-btn">Open on Moltbook →</a>
-                            </div>
-                        </div>
+        function renderBars(container, items) {
+            if (!items.length) { container.innerHTML = '<div class="empty">No trend data yet. Agent collects trends every 2 hours.</div>'; return; }
+            container.innerHTML = items.map(([keyword, count]) => `
+                <div class="trend-row">
+                    <div class="trend-keyword">${keyword}</div>
+                    <div class="trend-bar-wrap">
+                        <div class="trend-bar trend-bar--up" style="width:${Math.round(count/maxVal*100)}%"></div>
                     </div>
-                </div>`;
-            }).join('');
+                    <div class="trend-change" style="color:var(--text-secondary)">${count}</div>
+                </div>
+            `).join('');
         }
 
-        async function markAllSeen() {
-            if (confirm('Mark all ideas as seen?')) {
-                await fetch('/api/mark_seen', { method: 'POST' });
-                await loadStats();
-            }
-        }
+        renderBars(document.getElementById('overview-trends'), sorted.slice(0, 6));
+        renderBars(document.getElementById('trends-full'), sorted);
+    } catch(e) { console.error('Trends failed', e); }
+}
 
-        loadStats();
-        loadIdeas();
-        setInterval(loadStats, 30000);
-    </script>
+/* ── Load Ideas ────────────────────────── */
+async function loadIdeas() {
+    try {
+        const res = await fetch('/api/ideas');
+        allIdeas = await res.json();
+        renderIdeas();
+    } catch(e) { document.getElementById('ideas-list').innerHTML = '<div class="empty">Failed to load ideas</div>'; }
+}
+
+function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderIdeas();
+}
+
+function toggleDetail(idx) {
+    document.getElementById('det-' + idx).classList.toggle('open');
+}
+
+function renderIdeas() {
+    const box = document.getElementById('ideas-list');
+    let list = allIdeas;
+
+    if (currentFilter === 'high') list = list.filter(i => i.analysis.feasibility_score >= 70);
+    else if (currentFilter === 'medium') list = list.filter(i => i.analysis.feasibility_score >= 50 && i.analysis.feasibility_score < 70);
+    else if (currentFilter === 'low') list = list.filter(i => i.analysis.feasibility_score < 50);
+
+    if (!list.length) { box.innerHTML = '<div class="empty">No ideas match this filter</div>'; return; }
+
+    box.innerHTML = list.map((idea, idx) => {
+        const s = idea.analysis.feasibility_score;
+        const a = idea.analysis;
+        const tags = (a.tags || []).map(t => `<span class="idea-tag">${t}</span>`).join('');
+        const canDo = (a.reasons_can_do || []).map(r => `<li>${r}</li>`).join('');
+        const cantDo = (a.reasons_cant_do || []).map(r => `<li>${r}</li>`).join('');
+        const insights = (a.key_insights || []).map(r => `<li>${r}</li>`).join('');
+
+        return `
+        <div class="idea-item">
+            <div class="idea-top">
+                <div class="score-badge ${scoreClass(s)}">${s}</div>
+                <div class="idea-content">
+                    <div class="idea-title">${idea.title || 'Untitled'}</div>
+                    <div class="idea-meta">
+                        <span>${idea.author || 'Unknown'}</span>
+                        <span>${idea.score || 0} votes</span>
+                        <span>${idea.comment_count || 0} comments</span>
+                        ${a.business_model && a.business_model !== 'Unknown' ? `<span>${a.business_model}</span>` : ''}
+                        ${a.time_estimate && a.time_estimate !== 'Unknown' ? `<span>${a.time_estimate}</span>` : ''}
+                        ${a.profit_potential && a.profit_potential !== 'Unknown' ? `<span>${a.profit_potential}</span>` : ''}
+                    </div>
+                    ${tags ? `<div class="idea-tags">${tags}</div>` : ''}
+                    <div class="idea-rec">${a.recommendation || ''}</div>
+                    <button class="detail-toggle" onclick="toggleDetail(${idx})">Show details</button>
+                    <div class="idea-details" id="det-${idx}">
+                        ${insights ? `<div class="detail-section"><h4>Key Insights</h4><ul>${insights}</ul></div>` : ''}
+                        ${canDo ? `<div class="detail-section"><h4>Matching Skills</h4><ul>${canDo}</ul></div>` : ''}
+                        ${cantDo ? `<div class="detail-section"><h4>Missing Skills</h4><ul>${cantDo}</ul></div>` : ''}
+                        ${idea.content ? `<div class="detail-section"><h4>Original Post</h4><div class="original-text">${idea.content.substring(0, 500)}${idea.content.length > 500 ? '...' : ''}</div></div>` : ''}
+                        <a href="${idea.url}" target="_blank" rel="noopener" class="moltbook-link">View on Moltbook</a>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ── Mark seen ─────────────────────────── */
+async function markAllSeen() {
+    if (confirm('Mark all ideas as seen?')) {
+        await fetch('/api/mark_seen', { method: 'POST' });
+        await loadHealth();
+    }
+}
+
+/* ── Init ──────────────────────────────── */
+loadHealth();
+loadDigest();
+loadTrends();
+loadIdeas();
+setInterval(loadHealth, 30000);
+</script>
+
 </body>
-
-</html>
-    </script>
-</body>
-
 </html>
