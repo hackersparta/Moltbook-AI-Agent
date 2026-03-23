@@ -166,18 +166,19 @@ def _safe_meta_call(method, url, data=None, max_retries=2):
         error_data = resp.json().get("error", {})
         code = error_data.get("code", 0)
         msg = error_data.get("message", "")
+        log.warning(f"API error: HTTP {resp.status_code}, code={code}, msg={msg}")
 
-        # Auth errors — never retry, token is bad
-        if resp.status_code == 403 or code in (190, 10, 100):
-            log.error(f"AUTH ERROR (no retry): {code} - {msg}")
-            raise Exception(f"Meta auth error: {msg}")
-
-        # Rate limit (code 4 or 32) — wait and retry once
+        # Rate limit FIRST — code 4/32 can come with 403 or 429
         if code in (4, 32) or resp.status_code == 429:
             wait = 60 * (attempt + 1)  # 60s, 120s
             log.warning(f"RATE LIMITED. Waiting {wait}s before retry {attempt+1}...")
             time.sleep(wait)
             continue
+
+        # Auth errors — never retry, token is bad
+        if code in (190, 10, 100):
+            log.error(f"AUTH ERROR (no retry): {code} - {msg}")
+            raise Exception(f"Meta auth error: {msg}")
 
         # Other errors — short retry with backoff
         if attempt < max_retries:
