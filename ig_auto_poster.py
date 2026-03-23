@@ -286,6 +286,37 @@ def get_public_url(drive, file_id):
     return f"https://lh3.googleusercontent.com/d/{file_id}"
 
 
+def _already_posted_on_ig(caption_snippet):
+    """Check IG recent media to see if a post with this caption already exists.
+    Prevents duplicates when Meta returns error but actually publishes."""
+    if not caption_snippet:
+        return False
+    try:
+        # Get last 10 posts from IG
+        resp = requests.get(
+            f"{META_API}/{IG_ACCOUNT_ID}/media",
+            params={
+                "fields": "caption,timestamp",
+                "limit": 10,
+                "access_token": META_TOKEN,
+            },
+        )
+        if resp.status_code != 200:
+            log.warning(f"Could not check recent posts: {resp.status_code}")
+            return False
+        posts = resp.json().get("data", [])
+        # Check first 80 chars of caption (enough to match uniquely)
+        snippet = caption_snippet[:80].strip()
+        for p in posts:
+            if p.get("caption", "")[:80].strip() == snippet:
+                log.warning(f"DUPLICATE DETECTED — this caption already posted on IG")
+                return True
+        return False
+    except Exception as e:
+        log.warning(f"Duplicate check failed: {e}")
+        return False
+
+
 # ── Main pipeline ────────────────────────────────────────────────
 def run_daily_post():
     """Main function: check today's schedule, download slides, post to IG."""
@@ -339,6 +370,19 @@ def run_daily_post():
         caption = download_drive_file(drive, caption_file["id"]).decode("utf-8")
 
     log.info(f"Posting {shortcode}: {len(slides)} slides, caption={len(caption)} chars")
+
+    # DUPLICATE CHECK — prevents reposting if Meta published but returned error
+    if _already_posted_on_ig(caption):
+        log.warning(f"Post {shortcode} already exists on IG! Marking as posted.")
+        mark_posted(wb, row)
+        buf = io.BytesIO()
+        wb.save(buf)
+        upload_drive_file(
+            drive, DRIVE_FOLDER_ID, "carousel_report.xlsx",
+            buf.getvalue(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        return {"status": "skipped", "message": f"{shortcode} already posted on IG (duplicate prevented)"}
 
     # 5. Make slides public and upload to Meta (with 2s gap between uploads)
     _record_attempt()  # Count this as an attempt BEFORE touching Meta API
