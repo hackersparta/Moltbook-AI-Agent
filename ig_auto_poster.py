@@ -154,8 +154,50 @@ def mark_posted(wb, row):
 # ── Meta Graph API (with rate-limit safety) ──────────────────────
 import time
 
-def _safe_meta_call(method, url, data=None, max_retries=2):
-    """Make a Meta API call with rate-limit awareness. Abort on auth errors."""
+# Hard safety: cooldown + daily cap to protect Meta developer account
+_last_attempt_time = None   # UTC timestamp of last posting attempt
+_daily_attempts = 0         # number of posting attempts today
+_daily_date = None          # which date the counter is for
+COOLDOWN_SECONDS = 3600     # 1 hour between attempts
+MAX_DAILY_ATTEMPTS = 3      # max 3 attempts per day — protects account
+
+def _check_cooldown():
+    """Return (allowed, message). Blocks if too soon or too many attempts today."""
+    global _last_attempt_time, _daily_attempts, _daily_date
+    now = datetime.utcnow()
+    today = now.date()
+
+    # Reset daily counter at midnight
+    if _daily_date != today:
+        _daily_date = today
+        _daily_attempts = 0
+
+    # Check daily cap
+    if _daily_attempts >= MAX_DAILY_ATTEMPTS:
+        msg = f"Daily cap reached ({MAX_DAILY_ATTEMPTS} attempts). No more Meta calls today. Try tomorrow."
+        log.warning(msg)
+        return False, msg
+
+    # Check cooldown
+    if _last_attempt_time:
+        elapsed = (now - _last_attempt_time).total_seconds()
+        if elapsed < COOLDOWN_SECONDS:
+            remaining = int(COOLDOWN_SECONDS - elapsed)
+            msg = f"Cooldown active. Wait {remaining}s before next attempt ({_daily_attempts}/{MAX_DAILY_ATTEMPTS} used today)."
+            log.warning(msg)
+            return False, msg
+
+    return True, "OK"
+
+def _record_attempt():
+    """Record that a posting attempt was made."""
+    global _last_attempt_time, _daily_attempts
+    _last_attempt_time = datetime.utcnow()
+    _daily_attempts += 1
+    log.info(f"Meta API attempt #{_daily_attempts}/{MAX_DAILY_ATTEMPTS} today")
+
+def _safe_meta_call(method, url, data=None, max_retries=1):
+    """Make a Meta API call with rate-limit awareness. Abort on auth errors. Max 1 retry."""
     for attempt in range(max_retries + 1):
         resp = requests.request(method, url, data=data)
 
@@ -168,21 +210,19 @@ def _safe_meta_call(method, url, data=None, max_retries=2):
         msg = error_data.get("message", "")
         log.warning(f"API error: HTTP {resp.status_code}, code={code}, msg={msg}")
 
-        # Rate limit FIRST — code 4/32 can come with 403 or 429
+        # Rate limit — ABORT immediately, don't waste more calls
         if code in (4, 32) or resp.status_code == 429:
-            wait = 60 * (attempt + 1)  # 60s, 120s
-            log.warning(f"RATE LIMITED. Waiting {wait}s before retry {attempt+1}...")
-            time.sleep(wait)
-            continue
+            log.error(f"RATE LIMITED — aborting to protect account. msg={msg}")
+            raise Exception(f"Rate limited by Meta. Stopping to protect account.")
 
         # Auth errors — never retry, token is bad
         if code in (190, 10, 100):
             log.error(f"AUTH ERROR (no retry): {code} - {msg}")
             raise Exception(f"Meta auth error: {msg}")
 
-        # Other errors — short retry with backoff
+        # Other errors — one short retry
         if attempt < max_retries:
-            wait = 10 * (attempt + 1)
+            wait = 10
             log.warning(f"API error {resp.status_code}: {msg}. Retry in {wait}s...")
             time.sleep(wait)
             continue
@@ -229,7 +269,7 @@ def publish_container(container_id):
         "POST",
         f"{META_API}/{IG_ACCOUNT_ID}/media_publish",
         data={"creation_id": container_id, "access_token": META_TOKEN},
-        max_retries=2,
+        max_retries=1,
     )
     return resp.json()["id"]
 
@@ -250,6 +290,11 @@ def get_public_url(drive, file_id):
 def run_daily_post():
     """Main function: check today's schedule, download slides, post to IG."""
     log.info("=== IG Auto-Poster starting ===")
+
+    # Hard safety check — cooldown + daily cap
+    allowed, reason = _check_cooldown()
+    if not allowed:
+        return {"status": "blocked", "message": reason}
 
     if not META_TOKEN:
         log.error("META_PAGE_ACCESS_TOKEN not set")
@@ -296,6 +341,7 @@ def run_daily_post():
     log.info(f"Posting {shortcode}: {len(slides)} slides, caption={len(caption)} chars")
 
     # 5. Make slides public and upload to Meta (with 2s gap between uploads)
+    _record_attempt()  # Count this as an attempt BEFORE touching Meta API
     try:
         container_ids = []
         for slide in slides:

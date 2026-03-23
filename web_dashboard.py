@@ -382,6 +382,7 @@ clearInterval(iv);
 var res=d.result||{};
 if(res.status==="posted"){showToast("\\u2705 Posted! "+res.shortcode+" ("+res.slides+" slides)","success")}
 else if(res.status==="skipped"){showToast(res.message||"Skipped","info")}
+else if(res.status==="blocked"){showToast("\\u1F6D1 "+res.message,"error")}
 else{showToast("Error: "+(res.message||"Unknown"),"error")}
 b.disabled=false;b.textContent="\\u1F680 Post Now";loadData();
 }catch(e){clearInterval(iv);showToast("Poll error: "+e.message,"error");b.disabled=false;b.textContent="\\u1F680 Post Now"}
