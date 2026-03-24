@@ -275,7 +275,7 @@ def publish_container(container_id):
 
 
 def get_public_url(drive, file_id):
-    """Make file publicly readable and return direct image URL."""
+    """Make file publicly readable and return direct image URL at FULL resolution."""
     try:
         drive.permissions().create(
             fileId=file_id,
@@ -283,7 +283,8 @@ def get_public_url(drive, file_id):
         ).execute()
     except Exception:
         pass  # May already be shared
-    return f"https://lh3.googleusercontent.com/d/{file_id}"
+    # =s0 forces original resolution (no Google compression/resize)
+    return f"https://lh3.googleusercontent.com/d/{file_id}=s0"
 
 
 def _already_posted_on_ig(caption_snippet):
