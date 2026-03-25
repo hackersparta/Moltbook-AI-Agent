@@ -570,6 +570,156 @@ def sds_status():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# ── Learn AI Today FB Poster ──────────────────────────────────────
+_lat_post_state = {"running": False, "result": None, "started": None}
+
+@app.route('/lat')
+@app.route('/lat/')
+def lat_dashboard():
+    """Learn AI Today FB Auto-Poster dashboard — custom design."""
+    html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Learn AI Today | FB Auto-Poster</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0F172A;color:#E2E8F0;min-height:100vh}
+.nav{background:#0F172A;border-bottom:1px solid #1E293B;padding:16px 32px;display:flex;justify-content:space-between;align-items:center}
+.nav-brand{display:flex;align-items:center;gap:12px}
+.nav-brand h1{font-size:20px;color:#38BDF8;font-weight:700}
+.nav-brand span{color:#64748B;font-size:13px}
+.nav-right{color:#475569;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 32px}
+.card{background:#1E293B;border-radius:12px;padding:20px;border:1px solid #334155}
+.card .val{font-size:36px;font-weight:800;color:#38BDF8;margin:4px 0}
+.card .lbl{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:1px}
+.card.accent{border-color:#0369A1;background:linear-gradient(135deg,#0C4A6E,#1E293B)}
+.toolbar{padding:8px 32px 16px;display:flex;gap:12px;align-items:center}
+.btn{padding:10px 22px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.btn-primary{background:#0369A1;color:#fff}.btn-primary:hover{background:#0284C7}
+.btn-secondary{background:#1E293B;color:#94A3B8;border:1px solid #334155}.btn-secondary:hover{background:#334155}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.alert{margin:0 32px 16px;padding:12px 20px;border-radius:8px;font-size:13px;display:none}
+.alert-ok{background:#064E3B;color:#6EE7B7;border:1px solid #065F46;display:block}
+.alert-err{background:#7F1D1D;color:#FCA5A5;border:1px solid #991B1B;display:block}
+.alert-info{background:#0C4A6E;color:#7DD3FC;border:1px solid #0369A1;display:block}
+.tbl-wrap{padding:0 32px 48px}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#1E293B;border-radius:12px;overflow:hidden;border:1px solid #334155}
+th{background:#0F172A;padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748B;border-bottom:1px solid #334155}
+td{padding:12px 16px;border-bottom:1px solid #1E293B;font-size:13px;color:#CBD5E1}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#253449}
+.pill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-ready{background:#164E63;color:#67E8F9}
+.pill-posted{background:#064E3B;color:#6EE7B7}
+.pill-pending{background:#3B2F14;color:#FCD34D}
+.img-name{font-family:'Cascadia Code','Fira Code',monospace;color:#38BDF8;font-size:12px}
+.caption-preview{max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#94A3B8;font-size:12px}
+.load{text-align:center;padding:48px;color:#475569}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid #334155;border-top-color:#38BDF8;border-radius:50%;animation:sp .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.footer{text-align:center;padding:24px;color:#334155;font-size:12px}
+</style>
+</head>
+<body>
+<div class="nav"><div class="nav-brand"><h1>&#x1F4D8; Learn AI Today</h1><span>Facebook Auto-Poster</span></div><div class="nav-right" id="ts"></div></div>
+<div class="grid">
+<div class="card accent"><div class="lbl">Total Posts</div><div class="val" id="total">-</div></div>
+<div class="card"><div class="lbl">Posted</div><div class="val" id="posted">-</div></div>
+<div class="card"><div class="lbl">Ready</div><div class="val" id="ready">-</div></div>
+<div class="card"><div class="lbl">Next Post</div><div class="val" id="nextDay" style="font-size:18px">-</div></div>
+</div>
+<div class="toolbar">
+<button class="btn btn-primary" id="btnPost" onclick="doPost()">&#x1F680; Post Today&#39;s</button>
+<button class="btn btn-secondary" onclick="load()">&#x21BB; Refresh</button>
+</div>
+<div id="alert" class="alert"></div>
+<div class="tbl-wrap"><div id="tbl" class="load"><span class="spin"></span>Loading schedule from Drive...</div></div>
+<div class="footer">Learn AI Today &middot; Automated by Nirmal&#39;s AI Pipeline</div>
+<script>
+function msg(t,c){var a=document.getElementById("alert");a.className="alert alert-"+c;a.textContent=t;setTimeout(function(){a.className="alert"},5000)}
+function pill(s){if(!s)return"pill-pending";s=s.toLowerCase();return s==="posted"?"pill-posted":s==="ready"?"pill-ready":"pill-pending"}
+async function load(){
+document.getElementById("tbl").innerHTML='<div class="load"><span class="spin"></span>Loading...</div>';
+try{var r=await fetch("/api/lat-status");var d=await r.json();
+if(d.status==="error"){document.getElementById("tbl").innerHTML='<div class="load" style="color:#FCA5A5">'+d.message+'</div>';return}
+var p=d.posts||[];
+var posted=p.filter(function(x){return(x.status||"").toLowerCase()==="posted"}).length;
+var ready=p.filter(function(x){return(x.status||"").toLowerCase()==="ready"}).length;
+var next=p.find(function(x){return(x.status||"").toLowerCase()==="ready"});
+document.getElementById("total").textContent=p.length;
+document.getElementById("posted").textContent=posted;
+document.getElementById("ready").textContent=ready;
+document.getElementById("nextDay").textContent=next?("Day "+next.day+" \\u2022 "+next.date):"All done!";
+document.getElementById("ts").textContent="Updated "+new Date().toLocaleTimeString();
+var h='<table><thead><tr><th>Day</th><th>Date</th><th>Title</th><th>Image</th><th>Caption</th><th>Status</th><th>Posted</th></tr></thead><tbody>';
+p.forEach(function(x){
+h+="<tr><td>"+x.day+"</td><td>"+x.date+"</td><td>"+x.title+"</td>";
+h+='<td class="img-name">'+(x.image_file||"")+(x.image_exists?"  \\u2705":"  \\u274C")+"</td>";
+h+='<td class="caption-preview">'+(x.caption||"").substring(0,60)+"...</td>";
+h+='<td><span class="pill '+pill(x.status)+'">'+(x.status||"pending")+"</span></td>";
+h+="<td>"+(x.posted_date||"\\u2014")+"</td></tr>"});
+h+="</tbody></table>";document.getElementById("tbl").innerHTML=h;
+}catch(e){document.getElementById("tbl").innerHTML='<div class="load" style="color:#FCA5A5">'+e.message+"</div>"}}
+async function doPost(){
+var b=document.getElementById("btnPost");b.disabled=true;b.textContent="\\u23F3 Posting...";msg("Posting to Facebook...","info");
+try{var r=await fetch("/api/lat-cron");var d=await r.json();
+if(d.status==="busy"){msg(d.message,"info");b.disabled=false;b.textContent="\\u1F680 Post Today's";return}
+if(d.status==="started"){msg("Started! Checking...","info");poll(b);return}
+msg(JSON.stringify(d),"err");b.disabled=false;b.textContent="\\u1F680 Post Today's";
+}catch(e){msg(e.message,"err");b.disabled=false;b.textContent="\\u1F680 Post Today's"}}
+function poll(b){var iv=setInterval(async function(){try{var r=await fetch("/api/lat-post-result");var d=await r.json();
+if(d.running){return}clearInterval(iv);var res=d.result||{};
+if(res.status==="posted"){msg("\\u2705 Posted Day "+res.day+" — "+res.title,"ok")}
+else if(res.status==="skipped"){msg(res.message||"Skipped","info")}
+else{msg(res.message||"Error","err")}
+b.disabled=false;b.textContent="\\u1F680 Post Today's";load()
+}catch(e){clearInterval(iv);msg(e.message,"err");b.disabled=false;b.textContent="\\u1F680 Post Today's"}},4000)}
+load();
+</script>
+</body></html>'''
+    return Response(html, mimetype='text/html')
+
+@app.route('/api/lat-cron')
+def lat_cron():
+    """Triggered by cron-job.org at 11 AM IST. Runs LAT FB posting in background."""
+    if _lat_post_state["running"]:
+        return jsonify({"status": "busy", "message": "LAT post already in progress."})
+
+    def _run():
+        try:
+            from lat_poster import run_lat_post
+            _lat_post_state["result"] = run_lat_post()
+        except Exception as e:
+            _lat_post_state["result"] = {"status": "error", "message": str(e)}
+        finally:
+            _lat_post_state["running"] = False
+
+    _lat_post_state["running"] = True
+    _lat_post_state["result"] = None
+    _lat_post_state["started"] = datetime.utcnow().isoformat()
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "message": "LAT FB posting started in background."})
+
+@app.route('/api/lat-post-result')
+def lat_post_result():
+    return jsonify({
+        "running": _lat_post_state["running"],
+        "result": _lat_post_state["result"],
+        "started": _lat_post_state["started"],
+    })
+
+@app.route('/api/lat-status')
+def lat_status():
+    """Get all LAT posts with status for dashboard."""
+    try:
+        from lat_poster import get_lat_status
+        return jsonify(get_lat_status())
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("=" * 70)
     print("🚀 MOLTBOOK IDEA ANALYZER - WEB DASHBOARD")
