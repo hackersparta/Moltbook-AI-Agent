@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDS Posts — Moltbook Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-primary: #09090b;
+    --bg-card: #111113;
+    --bg-elevated: #18181b;
+    --border: #27272a;
+    --border-hover: #3f3f46;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent: #22c55e;
+    --accent-dim: rgba(34,197,94,.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,.12);
+    --radius: 10px;
+    --radius-lg: 14px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Navigation ─────────────────── */
+.nav {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.nav-brand .logo {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+}
+.nav-brand .logo svg { width: 16px; height: 16px; }
+.nav-brand span { font-weight: 600; font-size: 15px; letter-spacing: -.3px; }
+.nav-links { display: flex; gap: 4px; }
+.nav-link {
+    padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500;
+    text-decoration: none; color: var(--text-muted); border: none;
+    background: none; cursor: pointer; transition: all .15s ease;
+}
+.nav-link:hover { color: var(--text-primary); background: var(--bg-elevated); }
+.nav-link--accent { background: var(--accent); color: #000; font-weight: 600; }
+.nav-link--accent:hover { background: #16a34a; color: #000; }
+
+/* ── Layout ─────────────────────── */
+.container { max-width: 1280px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+/* ── Stats Bar ──────────────────── */
+.stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px; text-align: center;
+}
+.stat-card .num { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.stat-card .label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.stat-num-accent { color: var(--accent); }
+.stat-num-amber { color: var(--amber); }
+.stat-num-blue { color: var(--blue); }
+
+/* ── Actions Bar ────────────────── */
+.actions-bar { display: flex; gap: 10px; margin-bottom: 1.5rem; align-items: center; }
+.btn {
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all .15s ease; display: inline-flex;
+    align-items: center; gap: 6px;
+}
+.btn-post { background: var(--accent); color: #000; }
+.btn-post:hover { background: #16a34a; }
+.btn-post:disabled { opacity: .5; cursor: not-allowed; }
+.btn-refresh { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-refresh:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.slot-select { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; font-size: 13px; font-family: inherit; }
+.last-updated { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+
+/* ── Toast ──────────────────────── */
+.toast {
+    position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+    border-radius: 10px; font-size: 13px; font-weight: 500;
+    opacity: 0; transform: translateY(10px);
+    transition: all .3s ease; pointer-events: none; z-index: 200;
+    max-width: 400px;
+}
+.toast.info { opacity: 1; transform: none; background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,.25); }
+.toast.success { opacity: 1; transform: none; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(34,197,94,.25); }
+.toast.error { opacity: 1; transform: none; background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+
+/* ── Calendar Grid ──────────────── */
+.calendar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+.day-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color .2s ease;
+}
+.day-card:hover { border-color: var(--border-hover); }
+.day-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 10px;
+}
+.day-title { font-weight: 600; font-size: 15px; }
+.day-date { font-size: 12px; color: var(--text-muted); }
+.day-slots { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Slot Row ───────────────────── */
+.slot-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--bg-elevated); border-radius: var(--radius);
+    padding: 12px;
+}
+.slot-preview {
+    width: 64px; height: 64px; border-radius: 8px;
+    background: var(--bg-primary); overflow: hidden; flex-shrink: 0;
+}
+.slot-preview img { width: 100%; height: 100%; object-fit: cover; }
+.slot-preview-empty {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 20px;
+}
+.slot-info { flex: 1; min-width: 0; }
+.slot-time { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.slot-type { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.slot-platform { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ── Badges ─────────────────────── */
+.badge {
+    display: inline-block; padding: 3px 8px; border-radius: 5px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+}
+.badge-posted { background: var(--accent-dim); color: var(--accent); }
+.badge-pending { background: var(--amber-dim); color: var(--amber); }
+.badge-fb-posted { background: var(--blue-dim); color: var(--blue); }
+.badge-error { background: var(--red-dim); color: var(--red); }
+
+/* ── Loading ────────────────────── */
+.loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 60px 0; color: var(--text-muted); font-size: 14px; }
+.spinner {
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ─────────────────── */
+@media (max-width: 768px) {
+    .nav { padding: 0 1rem; }
+    .container { padding: 1rem; }
+    .stats-bar { grid-template-columns: repeat(3, 1fr); }
+    .calendar-grid { grid-template-columns: 1fr; }
+    .actions-bar { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+    <a href="/" style="text-decoration:none;color:inherit">
+        <div class="nav-brand">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <span>Moltbook Intelligence</span>
+        </div>
+    </a>
+    <div class="nav-links">
+        <a href="/ig" class="nav-link">IG Poster</a>
+        <a href="/sds" class="nav-link nav-link--accent">SDS Posts</a>
+        <a href="/comments" class="nav-link">Comments</a>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- Header -->
+    <div style="margin-bottom: 1.5rem">
+        <h1 style="font-size: 22px; font-weight: 700; letter-spacing: -.5px">SDS — 30 Day Posting Pipeline</h1>
+        <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px">Sugar Discipline System &middot; Facebook + Instagram Auto-Poster</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat-card"><div class="num" id="totalPosts">-</div><div class="label">Total Posts</div></div>
+        <div class="stat-card"><div class="num stat-num-accent" id="postedCount">-</div><div class="label">Posted</div></div>
+        <div class="stat-card"><div class="num stat-num-amber" id="pendingCount">-</div><div class="label">Pending</div></div>
+        <div class="stat-card"><div class="num stat-num-blue" id="fbPostedCount">-</div><div class="label">FB Only</div></div>
+        <div class="stat-card"><div class="num" id="daysLeft">-</div><div class="label">Days Left</div></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-bar">
+        <select class="slot-select" id="slotSelect">
+            <option value="">Auto (by time)</option>
+            <option value="morning">Morning Slot</option>
+            <option value="evening">Evening Slot</option>
+        </select>
+        <button class="btn btn-post" id="btnPost" onclick="triggerPost()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Post Now
+        </button>
+        <button class="btn btn-refresh" onclick="loadData()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Refresh
+        </button>
+        <span class="last-updated" id="lastUpdated"></span>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Calendar -->
+    <div id="calendarArea">
+        <div class="loading"><span class="spinner"></span> Loading from Google Drive...</div>
+    </div>
+
+</div>
+
+<script>
+function showToast(msg, type) {
+    var el = document.getElementById('toast');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    setTimeout(function() { el.className = 'toast'; }, 4000);
+}
+
+function badgeClass(s) {
+    if (!s) return 'badge-pending';
+    s = s.toLowerCase();
+    if (s === 'posted') return 'badge-posted';
+    if (s === 'fb_posted') return 'badge-fb-posted';
+    return 'badge-pending';
+}
+
+function badgeLabel(s) {
+    if (!s) return 'Pending';
+    s = s.toLowerCase();
+    if (s === 'posted') return 'Posted';
+    if (s === 'fb_posted') return 'FB Done';
+    return 'Pending';
+}
+
+async function loadData() {
+    document.getElementById('calendarArea').innerHTML = '<div class="loading"><span class="spinner"></span> Loading from Google Drive...</div>';
+    try {
+        var r = await fetch('/api/sds/status');
+        var d = await r.json();
+        if (d.status === 'error') {
+            document.getElementById('calendarArea').innerHTML = '<div class="loading" style="color:var(--red)">Error: ' + (d.message || 'Unknown') + '</div>';
+            return;
+        }
+
+        var posts = d.posts || [];
+        var posted = posts.filter(function(p) { return (p.status || '').toLowerCase() === 'posted'; }).length;
+        var pending = posts.filter(function(p) { return !p.status || p.status.toLowerCase() === 'pending'; }).length;
+        var fbPosted = posts.filter(function(p) { return (p.status || '').toLowerCase() === 'fb_posted'; }).length;
+
+        document.getElementById('totalPosts').textContent = posts.length;
+        document.getElementById('postedCount').textContent = posted;
+        document.getElementById('pendingCount').textContent = pending;
+        document.getElementById('fbPostedCount').textContent = fbPosted;
+
+        // Group by day
+        var days = {};
+        posts.forEach(function(p) {
+            if (!days[p.day]) days[p.day] = { day: p.day, date: p.date, day_name: p.day_name, slots: [] };
+            days[p.day].slots.push(p);
+        });
+
+        var dayKeys = Object.keys(days).sort(function(a, b) { return Number(a) - Number(b); });
+        var remaining = dayKeys.filter(function(k) { return days[k].slots.some(function(s) { return !s.status || s.status.toLowerCase() !== 'posted'; }); }).length;
+        document.getElementById('daysLeft').textContent = remaining;
+        document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+        var html = '<div class="calendar-grid">';
+        dayKeys.forEach(function(k) {
+            var day = days[k];
+            html += '<div class="day-card">';
+            html += '<div class="day-header">';
+            html += '<div><span class="day-title">Day ' + day.day + '</span> <span class="day-date">' + (day.day_name || '') + '</span></div>';
+            html += '<span class="day-date">' + (day.date || '') + '</span>';
+            html += '</div>';
+            html += '<div class="day-slots">';
+
+            day.slots.forEach(function(slot) {
+                var timeLabel = (slot.time || '').indexOf('AM') >= 0 || (slot.time || '9:00').indexOf('9') === 0 ? 'Morning' : 'Evening';
+                var icon = slot.has_carousel ? '&#x1F4F7;' : '&#x1F5BC;';
+                html += '<div class="slot-row">';
+                html += '<div class="slot-preview">';
+                if (slot.preview_url) {
+                    html += '<img src="' + slot.preview_url + '" alt="preview" loading="lazy">';
+                } else {
+                    html += '<div class="slot-preview-empty">' + icon + '</div>';
+                }
+                html += '</div>';
+                html += '<div class="slot-info">';
+                html += '<div class="slot-time">' + timeLabel + ' &middot; ' + (slot.time || '') + '</div>';
+                html += '<div class="slot-type">' + (slot.content_type || slot.template || '') + '</div>';
+                html += '<div class="slot-platform">' + (slot.platform || '') + (slot.has_carousel ? ' &middot; Carousel' : '') + '</div>';
+                html += '</div>';
+                html += '<span class="badge ' + badgeClass(slot.status) + '">' + badgeLabel(slot.status) + '</span>';
+                html += '</div>';
+            });
+
+            html += '</div></div>';
+        });
+        html += '</div>';
+
+        document.getElementById('calendarArea').innerHTML = html;
+    } catch (e) {
+        document.getElementById('calendarArea').innerHTML = '<div class="loading" style="color:var(--red)">Failed: ' + e.message + '</div>';
+    }
+}
+
+async function triggerPost() {
+    var btn = document.getElementById('btnPost');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Posting...';
+    showToast('Triggering SDS post in background...', 'info');
+
+    var slot = document.getElementById('slotSelect').value;
+    var url = '/api/sds-cron' + (slot ? '?slot=' + slot : '');
+
+    try {
+        var r = await fetch(url);
+        var d = await r.json();
+        if (d.status === 'busy') { showToast(d.message, 'info'); resetBtn(btn); return; }
+        if (d.status === 'started') { showToast(d.message, 'info'); pollResult(btn); return; }
+        showToast('Unexpected: ' + (d.message || JSON.stringify(d)), 'error');
+        resetBtn(btn);
+    } catch (e) {
+        showToast('Failed: ' + e.message, 'error');
+        resetBtn(btn);
+    }
+}
+
+function resetBtn(btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Post Now';
+}
+
+function pollResult(btn) {
+    var iv = setInterval(async function() {
+        try {
+            var r = await fetch('/api/sds-post-result');
+            var d = await r.json();
+            if (d.running) { return; }
+            clearInterval(iv);
+
+            var res = d.result || {};
+            if (res.status === 'completed') {
+                showToast('Done! ' + res.success + '/' + res.total + ' posted successfully.', 'success');
+            } else if (res.status === 'skipped') {
+                showToast(res.message || 'No posts for this slot.', 'info');
+            } else {
+                showToast('Error: ' + (res.message || 'Unknown'), 'error');
+            }
+            resetBtn(btn);
+            loadData();
+        } catch (e) {
+            clearInterval(iv);
+            showToast('Poll error: ' + e.message, 'error');
+            resetBtn(btn);
+        }
+    }, 5000);
+}
+
+loadData();
+</script>
+</body>
+</html>

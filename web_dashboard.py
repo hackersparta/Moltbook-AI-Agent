@@ -521,6 +521,55 @@ def ig_status():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# ── SDS Auto-Poster ──────────────────────────────────────────────
+_sds_post_state = {"running": False, "result": None, "started": None}
+
+@app.route('/sds')
+@app.route('/sds/')
+def sds_dashboard():
+    return render_template('sds_dashboard.html')
+
+@app.route('/api/sds-cron')
+def sds_cron():
+    """Triggered by cron-job.org. Runs SDS posting in background thread."""
+    if _sds_post_state["running"]:
+        return jsonify({"status": "busy", "message": "SDS post already in progress."})
+
+    slot = request.args.get("slot")
+
+    def _run():
+        try:
+            from sds_poster import run_sds_post
+            _sds_post_state["result"] = run_sds_post(slot)
+        except Exception as e:
+            _sds_post_state["result"] = {"status": "error", "message": str(e)}
+        finally:
+            _sds_post_state["running"] = False
+
+    _sds_post_state["running"] = True
+    _sds_post_state["result"] = None
+    _sds_post_state["started"] = datetime.utcnow().isoformat()
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "message": f"SDS posting ({slot or 'auto'}) started in background."})
+
+@app.route('/api/sds-post-result')
+def sds_post_result():
+    return jsonify({
+        "running": _sds_post_state["running"],
+        "result": _sds_post_state["result"],
+        "started": _sds_post_state["started"],
+    })
+
+@app.route('/api/sds/status')
+def sds_status():
+    """Get all SDS posts with status for dashboard."""
+    try:
+        from sds_poster import get_sds_status
+        return jsonify(get_sds_status())
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 if __name__ == '__main__':
     print("=" * 70)
     print("🚀 MOLTBOOK IDEA ANALYZER - WEB DASHBOARD")
