@@ -276,7 +276,7 @@ def post_fb_and_ig(drive, day_num, caption):
         raise FileNotFoundError(f"Folder {day_folder_name} not found on Drive")
 
     files = list_drive_folder(drive, day_folder["id"])
-    single_images = sorted([f for f in files if f["name"].endswith(".png") and "carousel" not in f["name"]])
+    single_images = sorted([f for f in files if f["name"].endswith(".png") and "carousel" not in f["name"]], key=lambda x: x["name"])
     if not single_images:
         raise FileNotFoundError(f"No single image in {day_folder_name}")
 
@@ -309,7 +309,7 @@ def post_ig_carousel(drive, day_num, caption):
 
     files = list_drive_folder(drive, day_folder["id"])
     carousel_files = sorted([f for f in files if "carousel" in f["name"] and f["name"].endswith(".png")],
-                            key=lambda x: x["name"])
+                             key=lambda x: x["name"])
     if not carousel_files:
         raise FileNotFoundError(f"No carousel images in {day_folder_name}")
 
