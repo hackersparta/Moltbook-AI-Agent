@@ -200,13 +200,13 @@ def find_posts_for_slot(posts, slot):
 def _meta_request(method, endpoint, data=None, files=None):
     """Make request to Meta Graph API using SDS tokens."""
     url = f"{META_API}{endpoint}"
-    headers = {"Authorization": f"Bearer {SDS_PAGE_TOKEN}"}
+    if data is None:
+        data = {}
+    data["access_token"] = SDS_PAGE_TOKEN
     if method == "GET":
-        resp = requests.get(url, headers=headers, params=data, timeout=60)
-    elif files:
-        resp = requests.post(url, headers=headers, data=data, files=files, timeout=60)
+        resp = requests.get(url, params=data, timeout=60)
     else:
-        resp = requests.post(url, headers=headers, json=data, timeout=60)
+        resp = requests.post(url, data=data, timeout=60)
     if resp.status_code != 200:
         log.error(f"Meta API {resp.status_code}: {resp.text[:300]}")
     resp.raise_for_status()
