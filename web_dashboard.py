@@ -3,6 +3,7 @@ from flask_cors import CORS
 import json
 from datetime import datetime
 import os
+import threading
 
 app = Flask(__name__)
 
@@ -718,6 +719,33 @@ def lat_status():
         return jsonify(get_lat_status())
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── Self-ping keep-alive (prevents Render free tier sleep) ────────
+import urllib.request
+
+def _keep_alive():
+    """Ping own /health endpoint every 10 min to prevent Render from sleeping."""
+    hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+    if not hostname:
+        return  # Not on Render, skip
+    health = f"https://{hostname}/health"
+    while True:
+        import time
+        time.sleep(600)  # 10 minutes
+        try:
+            urllib.request.urlopen(health, timeout=30)
+        except Exception:
+            pass  # Ignore errors, just keep trying
+
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
+
+# Start keep-alive thread at module level (gunicorn imports this module)
+if os.environ.get('RENDER'):
+    _keep_alive_thread = threading.Thread(target=_keep_alive, daemon=True)
+    _keep_alive_thread.start()
 
 
 if __name__ == '__main__':
