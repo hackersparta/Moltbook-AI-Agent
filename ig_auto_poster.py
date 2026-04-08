@@ -141,7 +141,8 @@ def find_todays_post(wb):
 
         # Handle both date objects and strings
         if hasattr(sched, "strftime"):
-            sched_date = sched if isinstance(sched, date) else sched.date()
+            # datetime is subclass of date, so check datetime first
+            sched_date = sched.date() if isinstance(sched, datetime) else sched
             sched_str = sched_date.strftime("%Y-%m-%d")
         else:
             sched_str = str(sched).strip()
