@@ -118,9 +118,19 @@ COL_POSTED = 12
 
 
 def find_todays_post(wb):
-    """Find the row in ★ Wishlist where Scheduled Date = today and Status = 'rendered'."""
+    """Find the next unposted row in ★ Wishlist.
+    
+    Priority:
+      1. Exact today match with status 'rendered' or 'pending'
+      2. Oldest missed post (scheduled date <= today) with status 'rendered' or 'pending'
+    This allows catching up on missed posts one-by-one.
+    """
     ws = wb["★ Wishlist"]
-    today_str = date.today().strftime("%Y-%m-%d")
+    today = date.today()
+    today_str = today.strftime("%Y-%m-%d")
+    POSTABLE = {"rendered", "pending"}
+
+    best_missed = None  # (row, shortcode, sched_str)
 
     for row in range(2, ws.max_row + 1):
         sched = ws.cell(row=row, column=COL_SCHEDULED).value
@@ -131,16 +141,36 @@ def find_todays_post(wb):
 
         # Handle both date objects and strings
         if hasattr(sched, "strftime"):
-            sched_str = sched.strftime("%Y-%m-%d")
+            sched_date = sched if isinstance(sched, date) else sched.date()
+            sched_str = sched_date.strftime("%Y-%m-%d")
         else:
             sched_str = str(sched).strip()
+            try:
+                sched_date = datetime.strptime(sched_str, "%Y-%m-%d").date()
+            except ValueError:
+                continue
 
-        if sched_str == today_str and str(status).strip().lower() == "rendered":
+        status_lower = str(status).strip().lower() if status else ""
+        if status_lower not in POSTABLE:
+            continue
+
+        # Exact today match — use immediately
+        if sched_str == today_str:
             shortcode = ws.cell(row=row, column=COL_SHORTCODE).value
             log.info(f"Found today's post: row={row}, shortcode={shortcode}")
             return row, shortcode
 
-    log.info(f"No post scheduled for {today_str}")
+        # Missed post (scheduled before today) — track the oldest one
+        if sched_date < today and best_missed is None:
+            best_missed = (row, ws.cell(row=row, column=COL_SHORTCODE).value, sched_str)
+
+    # No exact today match — catch up on oldest missed post
+    if best_missed:
+        row, shortcode, sched_str = best_missed
+        log.info(f"Catching up missed post: row={row}, shortcode={shortcode}, scheduled={sched_str}")
+        return row, shortcode
+
+    log.info(f"No post scheduled for {today_str} and no missed posts to catch up")
     return None, None
 
 
