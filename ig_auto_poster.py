@@ -152,7 +152,8 @@ def find_todays_post(wb):
                 continue
 
         status_lower = str(status).strip().lower() if status else ""
-        if status_lower not in POSTABLE:
+        # Accept: rendered, pending, or empty/None (empty = not yet processed)
+        if status_lower in ("posted", "error"):
             continue
 
         # Exact today match — use immediately
